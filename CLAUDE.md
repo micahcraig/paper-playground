@@ -25,10 +25,13 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 
 ## Architecture notes
 
-- User code runs in a sandboxed iframe rebuilt through srcdoc on each run. Messages to the runner: run, stop, resize. Messages back: ready, log, error.
+- User code runs in an `<iframe sandbox="allow-scripts">` (opaque origin) rebuilt through srcdoc on each run (src/runner/). The app never posts to the runner: new code means a new iframe, and resizing the iframe resizes the canvas (`data-paper-resize`). Messages back (src/runner/protocol.ts): ready, ran, log, error.
 - Project files run in tab order in one shared scope. TypeScript is stripped with sucrase. There is no import between files in v1.
-- Paper.js is pinned at 0.17.0 (the current npm release at M0); use `paper/dist/paper-full.js`, which includes the PaperScript compiler.
-- Runner loading approach that worked in M1: (fill in after the spike)
+- Paper.js is pinned at 0.17.0 (the current npm release at M0); the runner uses `paper/dist/paper-full.min.js`, which includes the PaperScript compiler.
+- Runner loading approach that worked in M1: **libraries are inlined into the srcdoc as text.** Chromium refuses blob: URLs inside a sandboxed (opaque-origin) iframe ("Not allowed to load local resource"), so the plan's blob-URL approach does not work, and the no-sandbox fallback was not needed. The app page fetches each library once (`src/runner/libraries.ts`; it is service-worker controlled, so this works offline) and inlines the text, escaped with `escapeScript`.
+- Error locations: JavaScript files are separate inline scripts, so `error.lineno` is a srcdoc line, mapped back with the `lineMap` from `buildSrcdoc`. PaperScript is compiled by Paper.js with `url: PAPERSCRIPT_URL`, so positions come from that frame in the stack (or the compiler's `(line:col)` for parse errors).
+- Paper.js listens to both touch and mouse events unless the user agent says "mobile" (Chrome in desktop-site mode, which large Android screens can default to, does not). The runner cancels `touchstart` so a tap fires handlers once.
+- Logs are capped at 1000 per run inside the runner, and the console keeps the last 200 entries.
 
 ## Out of scope for v1
 
