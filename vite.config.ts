@@ -16,7 +16,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'icons/icon.svg'],
       manifest: {
         name: 'Paper Playground',
-        short_name: 'Playground',
+        short_name: 'Paper Playground',
         description: 'Touch-first creative-coding playground for Paper.js',
         start_url: BASE,
         scope: BASE,
