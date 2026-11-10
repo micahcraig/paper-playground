@@ -11,6 +11,8 @@ test.describe('installable PWA', () => {
     const manifest = await response.json()
 
     expect(manifest.name).toBe('Paper Playground')
+    // short_name is the label under the home-screen icon.
+    expect(manifest.short_name).toBe('Paper Playground')
     expect(manifest.display).toBe('standalone')
     expect(manifest.start_url).toBe('/paper-playground/')
     expect(manifest.scope).toBe('/paper-playground/')
