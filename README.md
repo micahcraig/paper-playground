@@ -2,7 +2,7 @@
 
 A touch-first creative-coding playground for [Paper.js](http://paperjs.org/), built as an installable web app for the Pixel Fold. Edit a sketch and see it render in under half a second, online or off.
 
-Status: M0 (repo and tooling). See [PLAN.md](PLAN.md) for the milestones.
+Status: M1 (runner spike). See [PLAN.md](PLAN.md) for the milestones.
 
 ## Develop
 
