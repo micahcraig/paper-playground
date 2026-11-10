@@ -1,0 +1,87 @@
+/*
+ * Tokyo Night (dark) and Tokyo Night Day (light) tokens.
+ * Values are tuned so small text keeps at least 4.5:1 contrast;
+ * do not revert them to the stock palette values.
+ *
+ * Dark is the default. Light applies when the system prefers light,
+ * unless overridden with data-theme on <html>.
+ */
+:root {
+  color-scheme: dark;
+  --bg: #1a1b26;
+  --panel: #16161e;
+  --border: #292e42;
+  --raised: #292e42;
+  --current-line: #1f2335;
+  --preview-bg: #1f2335;
+  --text: #c0caf5;
+  --text-muted: #8089b3;
+  --line-number: #7d86ad;
+  --accent: #7aa2f7;
+  --on-accent: #1a1b26;
+  --tab-underline: #7aa2f7;
+  --live: #9ece6a;
+  --warn: #e0af68;
+  --syn-keyword: #bb9af7;
+  --syn-function: #7aa2f7;
+  --syn-string: #9ece6a;
+  --syn-number: #ff9e64;
+  --syn-property: #73daca;
+  --syn-builtin: #7dcfff;
+  --syn-comment: #8089b3;
+
+  --font-ui: Inter, system-ui, sans-serif;
+  --font-code: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #e1e2e7;
+    --panel: #d0d5e3;
+    --border: #b4b5b9;
+    --raised: #f0f1f6;
+    --current-line: #ecedf3;
+    --preview-bg: #eef0f6;
+    --text: #2c4a9e;
+    --text-muted: #44558f;
+    --line-number: #44558f;
+    --accent: #1f5fc4;
+    --on-accent: #ffffff;
+    --tab-underline: #2e7de9;
+    --live: #4a6a2b;
+    --warn: #6e4f22;
+    --syn-keyword: #7b36d6;
+    --syn-function: #1f5fc4;
+    --syn-string: #4a6a2b;
+    --syn-number: #9a4d00;
+    --syn-property: #086654;
+    --syn-builtin: #00657f;
+    --syn-comment: #44558f;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #e1e2e7;
+  --panel: #d0d5e3;
+  --border: #b4b5b9;
+  --raised: #f0f1f6;
+  --current-line: #ecedf3;
+  --preview-bg: #eef0f6;
+  --text: #2c4a9e;
+  --text-muted: #44558f;
+  --line-number: #44558f;
+  --accent: #1f5fc4;
+  --on-accent: #ffffff;
+  --tab-underline: #2e7de9;
+  --live: #4a6a2b;
+  --warn: #6e4f22;
+  --syn-keyword: #7b36d6;
+  --syn-function: #1f5fc4;
+  --syn-string: #4a6a2b;
+  --syn-number: #9a4d00;
+  --syn-property: #086654;
+  --syn-builtin: #00657f;
+  --syn-comment: #44558f;
+}
