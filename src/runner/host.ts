@@ -1,5 +1,6 @@
-import { resolveErrorLocation, type SourceLocation } from './errors'
+import { cleanErrorMessage, resolveErrorLocation, type SourceLocation } from './errors'
 import { PAPER_URL, loadLibrary } from './libraries'
+import { settlePending } from './preview'
 import {
   isRunnerMessage,
   type ErrorMessage,
@@ -15,18 +16,31 @@ export interface RunRequest {
   files: SketchFile[]
 }
 
+/** The new run failed before finishing, so the previous render stays on screen. */
+export interface KeptMessage {
+  type: 'kept'
+  runId: string
+}
+
 export type RunnerEvent =
   | ReadyMessage
   | (RanMessage & { elapsedMs: number })
   | LogMessage
   | (ErrorMessage & { location: SourceLocation | null })
+  | KeptMessage
 
-interface CurrentRun {
+interface Run {
   runId: string
   mode: SketchMode
   lineMap: LineSegment[]
   startedAt: number
+  iframe: HTMLIFrameElement
+  /** Finished its first pass without an error. */
+  good: boolean
 }
+
+/** Class on an iframe that is still loading behind the one on screen. */
+export const PENDING_CLASS = 'pending'
 
 let runCounter = 0
 function nextRunId(): string {
@@ -35,12 +49,13 @@ function nextRunId(): string {
 }
 
 /**
- * Owns the sandboxed runner iframe. Each run replaces the iframe with a fresh
- * one built from srcdoc, so no state leaks from one run to the next.
+ * Owns the sandboxed runner iframes. Each run gets a fresh iframe built from
+ * srcdoc, so no state leaks between runs. The new iframe loads hidden on top
+ * of the current one and replaces it only when its first pass succeeds.
  */
 export class RunnerHost {
-  private iframe: HTMLIFrameElement | null = null
-  private current: CurrentRun | null = null
+  private shown: Run | null = null
+  private pending: Run | null = null
   private latestRunId: string | null = null
   private readonly container: HTMLElement
   private readonly listener: (event: RunnerEvent) => void
@@ -51,7 +66,7 @@ export class RunnerHost {
     window.addEventListener('message', this.onMessage)
   }
 
-  /** Starts a run and resolves with its id once the iframe is in place. */
+  /** Starts a run and resolves with its id once its iframe is in place. */
   async run(request: RunRequest): Promise<string> {
     const runId = nextRunId()
     const startedAt = performance.now()
@@ -74,18 +89,21 @@ export class RunnerHost {
     const iframe = document.createElement('iframe')
     iframe.setAttribute('sandbox', 'allow-scripts')
     iframe.title = 'Sketch preview'
+    iframe.className = PENDING_CLASS
+    iframe.dataset.runId = runId
     iframe.srcdoc = html
 
-    this.current = { runId, mode: request.mode, lineMap, startedAt }
-    this.iframe = iframe
-    this.container.replaceChildren(iframe)
+    // A newer run supersedes one that is still loading.
+    this.pending?.iframe.remove()
+    this.pending = { runId, mode: request.mode, lineMap, startedAt, iframe, good: false }
+    this.container.append(iframe)
     return runId
   }
 
   stop(): void {
     this.latestRunId = null
-    this.current = null
-    this.iframe = null
+    this.shown = null
+    this.pending = null
     this.container.replaceChildren()
   }
 
@@ -94,21 +112,43 @@ export class RunnerHost {
     window.removeEventListener('message', this.onMessage)
   }
 
+  private show(run: Run): void {
+    if (this.shown) this.shown.iframe.remove()
+    run.iframe.classList.remove(PENDING_CLASS)
+    this.shown = run
+    this.pending = null
+  }
+
   private readonly onMessage = (event: MessageEvent) => {
-    const current = this.current
-    if (!current || !this.iframe || event.source !== this.iframe.contentWindow) return
+    const run = [this.pending, this.shown].find((r) => r !== null && r.iframe.contentWindow === event.source)
+    if (!run) return
     const data: unknown = event.data
-    if (!isRunnerMessage(data) || data.runId !== current.runId) return
+    if (!isRunnerMessage(data) || data.runId !== run.runId) return
 
     switch (data.type) {
       case 'error':
-        this.listener({ ...data, location: resolveErrorLocation(current.mode, current.lineMap, data) })
+        this.listener({
+          ...data,
+          message: cleanErrorMessage(data.message),
+          location: resolveErrorLocation(run.mode, run.lineMap, data),
+        })
         break
       case 'ran':
-        this.listener({ ...data, elapsedMs: Math.round(performance.now() - current.startedAt) })
+        run.good = true
+        this.listener({ ...data, elapsedMs: Math.round(performance.now() - run.startedAt) })
         break
       default:
         this.listener(data)
+    }
+
+    if (run !== this.pending) return
+    const action = settlePending(data.type, this.shown?.good ?? false)
+    if (action === 'show') {
+      this.show(run)
+    } else if (action === 'discard') {
+      run.iframe.remove()
+      this.pending = null
+      this.listener({ type: 'kept', runId: run.runId })
     }
   }
 }

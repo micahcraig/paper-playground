@@ -19,6 +19,7 @@ export const MAX_ENTRIES = 200
 export function entryFromEvent(event: RunnerEvent): Omit<ConsoleEntry, 'id'> | null {
   switch (event.type) {
     case 'ready':
+    case 'kept':
       return null
     case 'ran':
       return { level: 'system', text: `ran in ${event.elapsedMs} ms`, location: '' }

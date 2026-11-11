@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatLocation, locateLine, resolveErrorLocation } from './errors'
+import { cleanErrorMessage, formatLocation, locateLine, resolveErrorLocation } from './errors'
 import type { ErrorMessage } from './protocol'
 import { PAPERSCRIPT_URL, type LineSegment } from './srcdoc'
 
@@ -56,6 +56,11 @@ describe('resolveErrorLocation for PaperScript', () => {
     })
   })
 
+  it('reads the "(at url:line:column)" position Paper.js 0.17 adds to parse errors', () => {
+    const parse = error({ message: `SyntaxError: Unexpected token (at ${PAPERSCRIPT_URL}:4:15)` })
+    expect(resolveErrorLocation('paperscript', psMap, parse)).toEqual({ file: 'ripple.js', line: 4, column: 15 })
+  })
+
   it('falls back to the compiler parse position, converting the column to 1-based', () => {
     const parse = error({ message: 'SyntaxError: Unexpected token (4:12)' })
     expect(resolveErrorLocation('paperscript', psMap, parse)).toEqual({ file: 'ripple.js', line: 4, column: 13 })
@@ -64,6 +69,16 @@ describe('resolveErrorLocation for PaperScript', () => {
   it('returns null when nothing points into the sketch', () => {
     const stack = 'TypeError: x\n    at about:srcdoc:400:10'
     expect(resolveErrorLocation('paperscript', psMap, error({ stack }))).toBeNull()
+  })
+})
+
+describe('cleanErrorMessage', () => {
+  it('drops the internal position suffix', () => {
+    expect(cleanErrorMessage(`SyntaxError: Unexpected token (at ${PAPERSCRIPT_URL}:43:15)`)).toBe('SyntaxError: Unexpected token')
+  })
+
+  it('leaves other messages alone', () => {
+    expect(cleanErrorMessage('ReferenceError: x is not defined')).toBe('ReferenceError: x is not defined')
   })
 })
 
