@@ -177,6 +177,7 @@ test.describe('layout', () => {
     await expect(shown(page)).toHaveAttribute('data-run-id', runId!)
 
     await (isWide(page) ? button(page, 'Full-screen preview') : button(page, 'Open full preview')).click()
+    await expect(page.locator('.preview.full')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.locator('.preview.full')).toHaveCount(0)
   })

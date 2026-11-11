@@ -110,14 +110,14 @@ export function App() {
     return () => cancelAnimationFrame(frame)
   }, [viewport, wide, drawerOpen])
 
+  // Escape closes the full preview. Registered once, so it works straight away.
   useEffect(() => {
-    if (!fullPreview) return
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setFullPreview(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [fullPreview])
+  }, [])
 
   const toggleLive = () => {
     const next = !live
