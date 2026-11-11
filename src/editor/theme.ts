@@ -20,7 +20,8 @@ export const editorTheme = EditorView.theme({
   },
   '.cm-content': {
     caretColor: 'var(--accent)',
-    padding: '8px 0 32px',
+    // --editor-tail lets the app leave room under the last line (the floating preview).
+    padding: '8px 0 var(--editor-tail, 32px)',
   },
   '.cm-line': { padding: '0 12px 0 8px' },
   '.cm-gutters': {

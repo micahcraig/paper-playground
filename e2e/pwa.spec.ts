@@ -49,7 +49,7 @@ test.describe('installable PWA', () => {
 
     await context.setOffline(true)
     await page.reload()
-    await expect(page.getByRole('heading', { name: 'Paper Playground' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('ripple')
     await context.setOffline(false)
   })
 })

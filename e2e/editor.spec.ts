@@ -1,48 +1,17 @@
-import { expect, test, type Frame, type Page } from '@playwright/test'
-
-/** The runner iframe on screen; a new run loads hidden (class "pending") until it succeeds. */
-const shown = (page: Page) => page.locator('.preview iframe:not(.pending)')
-const consoleLines = (page: Page) => page.getByTestId('console').locator('li')
-const content = (page: Page) => page.locator('.cm-content')
-
-async function sketchFrame(page: Page): Promise<Frame> {
-  const frame = await (await shown(page).elementHandle())?.contentFrame()
-  if (!frame) throw new Error('runner iframe not found')
-  return frame
-}
-
-function alphaAt(frame: Frame, x: number, y: number): Promise<number> {
-  return frame.evaluate(
-    ([cssX, cssY]) => {
-      const canvas = document.querySelector('canvas')!
-      const scale = canvas.width / canvas.clientWidth
-      return canvas.getContext('2d')!.getImageData(Math.round(cssX * scale), Math.round(cssY * scale), 1, 1).data[3]
-    },
-    [x, y] as const,
-  )
-}
-
-function paintedPixels(frame: Frame): Promise<number> {
-  return frame.evaluate(() => {
-    const canvas = document.querySelector('canvas')!
-    const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
-    let painted = 0
-    for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) painted++
-    return painted
-  })
-}
-
-/** Opens the app and waits for the starter sketch's first good run. */
-async function openApp(page: Page) {
-  await page.goto('./')
-  await expect(consoleLines(page).filter({ hasText: /^ran in \d+ ms$/ })).toHaveCount(1)
-}
-
-/** Puts the caret on the empty last line of the document. */
-async function caretToEnd(page: Page) {
-  await content(page).click()
-  await page.keyboard.press('ControlOrMeta+End')
-}
+import { expect, test } from '@playwright/test'
+import {
+  alphaAt,
+  caretToEnd,
+  consoleLines,
+  content,
+  openApp,
+  openFullPreview,
+  paintedPixels,
+  pickSample,
+  screenPixel,
+  shown,
+  sketchFrame,
+} from './helpers.ts'
 
 test.describe('editor', () => {
   test('shows the sketch with autocorrect and suggestions off', async ({ page }) => {
@@ -73,22 +42,11 @@ test.describe('editor', () => {
     test(`the preview background shows through the sketch (${scheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme })
       await openApp(page)
+      await openFullPreview(page)
       const box = (await shown(page).boundingBox())!
       // The top-left corner of the preview is clear of the rings.
-      const png = await page.screenshot({ clip: { x: box.x + 2, y: box.y + 2, width: 1, height: 1 } })
-      const pixel = await page.evaluate(async (src) => {
-        const image = new Image()
-        image.src = src
-        await image.decode()
-        const canvas = document.createElement('canvas')
-        canvas.width = image.width
-        canvas.height = image.height
-        const context = canvas.getContext('2d')!
-        context.drawImage(image, 0, 0)
-        return Array.from(context.getImageData(0, 0, 1, 1).data.slice(0, 3))
-      }, `data:image/png;base64,${png.toString('base64')}`)
       // --preview-bg: #1f2335 dark, #eef0f6 light.
-      expect(pixel).toEqual(scheme === 'dark' ? [31, 35, 53] : [238, 240, 246])
+      expect(await screenPixel(page, box.x + 2, box.y + 2)).toEqual(scheme === 'dark' ? [31, 35, 53] : [238, 240, 246])
     })
   }
 
@@ -168,24 +126,11 @@ test.describe('editor', () => {
 
   test('loading a sample replaces the code', async ({ page }) => {
     await openApp(page)
-    await page.getByRole('button', { name: 'JavaScript', exact: true }).click()
+    await pickSample(page, 'JavaScript')
     await expect(content(page)).toContainText('ripple-plain.js · plain JavaScript')
     await expect(content(page)).not.toContainText('ripple.js · PaperScript')
-    await expect(page.locator('.title .muted')).toContainText('ripple-plain.js · JavaScript')
-  })
-
-  test('editor and preview sit side by side when wide, stacked when narrow', async ({ page }) => {
-    await openApp(page)
-    const editor = (await page.getByRole('region', { name: 'Editor' }).boundingBox())!
-    const preview = (await page.getByRole('region', { name: 'Preview' }).boundingBox())!
-    const width = page.viewportSize()!.width
-    if (width >= 600) {
-      expect(editor.x + editor.width).toBeLessThanOrEqual(preview.x + 1)
-      expect(Math.abs(editor.y - preview.y)).toBeLessThan(1)
-    } else {
-      expect(editor.y + editor.height).toBeLessThanOrEqual(preview.y + 1)
-    }
-    expect(editor.height).toBeGreaterThan(200)
-    expect(preview.height).toBeGreaterThan(150)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('ripple-plain')
+    await expect(page.locator('.title .muted')).toHaveText('JavaScript sketch')
+    await expect(page.locator('.tab')).toHaveText('ripple-plain.js')
   })
 })

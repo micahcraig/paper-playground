@@ -1,44 +1,5 @@
-import { expect, test, type Frame, type Page } from '@playwright/test'
-
-/** The runner iframe on screen; a new run loads hidden (class "pending") until it succeeds. */
-const shown = (page: Page) => page.locator('.preview iframe:not(.pending)')
-
-async function sketchFrame(page: Page): Promise<Frame> {
-  const handle = await shown(page).elementHandle()
-  const frame = await handle?.contentFrame()
-  if (!frame) throw new Error('runner iframe not found')
-  return frame
-}
-
-/** Number of canvas pixels that are not fully transparent. */
-function paintedPixels(frame: Frame): Promise<number> {
-  return frame.evaluate(() => {
-    const canvas = document.querySelector('canvas')!
-    const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
-    let painted = 0
-    for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) painted++
-    return painted
-  })
-}
-
-/** Alpha of the pixel at CSS coordinates inside the canvas. */
-function alphaAt(frame: Frame, x: number, y: number): Promise<number> {
-  return frame.evaluate(
-    ([cssX, cssY]) => {
-      const canvas = document.querySelector('canvas')!
-      const scale = canvas.width / canvas.clientWidth
-      return canvas.getContext('2d')!.getImageData(Math.round(cssX * scale), Math.round(cssY * scale), 1, 1).data[3]
-    },
-    [x, y] as const,
-  )
-}
-
-async function pickSample(page: Page, label: string) {
-  await page.getByRole('button', { name: label, exact: true }).click()
-  await expect(page.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true')
-}
-
-const consoleLines = (page: Page) => page.getByTestId('console').locator('li')
+import { expect, test } from '@playwright/test'
+import { alphaAt, consoleLines, openFullPreview, paintedPixels, pickSample, shown, sketchFrame } from './helpers.ts'
 
 test.describe('runner', () => {
   test('runs the PaperScript sample and forwards its logs', async ({ page }) => {
@@ -109,6 +70,7 @@ test.describe('runner', () => {
     await page.goto('./')
     await pickSample(page, 'Runtime error')
     await expect(consoleLines(page).filter({ hasText: 'tap the preview' })).toHaveCount(1)
+    await openFullPreview(page)
     const box = (await shown(page).boundingBox())!
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
     const error = consoleLines(page).filter({ hasText: 'ReferenceError: undefinedScale is not defined' })
@@ -125,6 +87,7 @@ test.describe('runner', () => {
     const frame = await sketchFrame(page)
     await expect.poll(() => paintedPixels(frame)).toBeGreaterThan(1000)
 
+    await openFullPreview(page)
     // Draw along the top edge, clear of the rings and the orbiting dot.
     const box = (await shown(page).boundingBox())!
     const y = 16

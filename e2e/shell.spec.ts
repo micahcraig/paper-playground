@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('app shell', () => {
-  test('shows the app name', async ({ page }) => {
+  test('shows the app name and the sketch name', async ({ page }) => {
     await page.goto('./')
-    await expect(page.getByRole('heading', { name: 'Paper Playground' })).toBeVisible()
+    await expect(page).toHaveTitle('Paper Playground')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('ripple')
   })
 
   test('uses Tokyo Night when the system is dark', async ({ page }) => {
