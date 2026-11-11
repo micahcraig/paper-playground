@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearLibraryCache, loadLibrary } from './libraries'
+import paperPackage from '../../node_modules/paper/package.json?raw'
+import { clearLibraryCache, loadLibrary, PAPER_VERSION } from './libraries'
 
 function respond(body: string, status = 200) {
   return Promise.resolve(new Response(body, { status }))
@@ -25,5 +26,12 @@ describe('loadLibrary', () => {
     await expect(loadLibrary('/lib.js', fetcher)).rejects.toThrow('HTTP 404')
     await expect(loadLibrary('/lib.js', fetcher)).resolves.toBe('src')
     expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('PAPER_VERSION', () => {
+  it('matches the installed paper package', () => {
+    const pkg = JSON.parse(paperPackage) as { version: string }
+    expect(PAPER_VERSION).toBe(pkg.version)
   })
 })

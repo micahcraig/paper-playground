@@ -1,6 +1,9 @@
 // The minified full build: it includes the PaperScript compiler and is half the size.
 import paperUrl from 'paper/dist/paper-full.min.js?url'
 
+/** The pinned Paper.js version, shown in the library chip. */
+export const PAPER_VERSION = '0.17.0'
+
 /** Library source URLs, emitted into dist/assets and precached by the service worker. */
 export const PAPER_URL = paperUrl
 

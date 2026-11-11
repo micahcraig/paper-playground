@@ -28,6 +28,8 @@ export const CONTENT_ATTRIBUTES = {
 
 export interface CodeEditor {
   view: EditorView
+  /** Scrolls the caret into view, with room around it, if the editor has focus. */
+  revealCaret(): void
   /** Replaces the whole document and its undo history, without reporting a change. */
   setCode(code: string): void
   destroy(): void
@@ -67,6 +69,11 @@ export function createEditor({ parent, code, onChange }: EditorOptions): CodeEdi
   const view = new EditorView({ parent, state: EditorState.create({ doc: code, extensions }) })
   return {
     view,
+    revealCaret() {
+      if (!view.hasFocus) return
+      const head = view.state.selection.main.head
+      view.dispatch({ effects: EditorView.scrollIntoView(head, { y: 'nearest', yMargin: 48 }) })
+    },
     setCode(next) {
       view.setState(EditorState.create({ doc: next, extensions }))
     },

@@ -35,6 +35,9 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 - Paper.js 0.17 parse errors end with `(at paperscript-sketch:L:C)`, column 1-based; `cleanErrorMessage` strips it for display.
 - The runner iframe has `color-scheme: normal`: an iframe whose colour scheme differs from the app's gets an opaque white backdrop.
 - Editor (src/editor/): CodeMirror with native selection (no drawSelection) for Android touch handles; colours are token custom properties, so one theme serves both variants.
+- Layouts (M3): `.app.wide` / `.app.narrow` from `WIDE_QUERY` (600 px). The preview element never moves in the DOM (moving an iframe reloads it); CSS places it docked, as the 152 px thumbnail, or full screen. In the thumbnail the sketch renders at full-preview size and is CSS-scaled, so expanding does not resize it, and it ignores touches.
+- Symbol keys cancel pointerdown/mousedown so the editor keeps focus and the keyboard stays open.
+- E2E helpers live in e2e/helpers.ts (imported as `./helpers.ts`); interact with the sketch through `openFullPreview` in the folded project.
 - Logs are capped at 1000 per run inside the runner, and the console keeps the last 200 entries.
 
 ## Out of scope for v1
