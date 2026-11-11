@@ -1,7 +1,10 @@
 import { expect, test, type Frame, type Page } from '@playwright/test'
 
+/** The runner iframe on screen; a new run loads hidden (class "pending") until it succeeds. */
+const shown = (page: Page) => page.locator('.preview iframe:not(.pending)')
+
 async function sketchFrame(page: Page): Promise<Frame> {
-  const handle = await page.locator('.preview iframe').elementHandle()
+  const handle = await shown(page).elementHandle()
   const frame = await handle?.contentFrame()
   if (!frame) throw new Error('runner iframe not found')
   return frame
@@ -68,16 +71,17 @@ test.describe('runner', () => {
   test('Run starts a fresh iframe', async ({ page }) => {
     await page.goto('./')
     await expect(consoleLines(page).filter({ hasText: 'rings: 6' })).toHaveCount(1)
-    const before = await page.locator('.preview iframe').elementHandle()
+    const before = await shown(page).getAttribute('data-run-id')
+    expect(before).toBeTruthy()
     await page.getByRole('button', { name: 'Run', exact: true }).click()
-    await expect.poll(async () => (await page.locator('.preview iframe').elementHandle()) !== before).toBe(true)
+    await expect(shown(page)).not.toHaveAttribute('data-run-id', before!)
     await expect(consoleLines(page).filter({ hasText: 'rings: 6' })).toHaveCount(1)
     await expect(page.locator('.preview iframe')).toHaveCount(1)
   })
 
   test('sketches run sandboxed in an opaque origin', async ({ page }) => {
     await page.goto('./')
-    await expect(page.locator('.preview iframe')).toHaveAttribute('sandbox', 'allow-scripts')
+    await expect(shown(page)).toHaveAttribute('sandbox', 'allow-scripts')
     const frame = await sketchFrame(page)
     const access = await frame.evaluate(() => {
       let parentReadable = true
@@ -105,7 +109,7 @@ test.describe('runner', () => {
     await page.goto('./')
     await pickSample(page, 'Runtime error')
     await expect(consoleLines(page).filter({ hasText: 'tap the preview' })).toHaveCount(1)
-    const box = (await page.locator('.preview iframe').boundingBox())!
+    const box = (await shown(page).boundingBox())!
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
     const error = consoleLines(page).filter({ hasText: 'ReferenceError: undefinedScale is not defined' })
     await expect(error).toHaveCount(1)
@@ -122,7 +126,7 @@ test.describe('runner', () => {
     await expect.poll(() => paintedPixels(frame)).toBeGreaterThan(1000)
 
     // Draw along the top edge, clear of the rings and the orbiting dot.
-    const box = (await page.locator('.preview iframe').boundingBox())!
+    const box = (await shown(page).boundingBox())!
     const y = 16
     const fromX = box.width * 0.2
     const toX = box.width * 0.8

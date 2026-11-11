@@ -6,6 +6,10 @@ describe('entryFromEvent', () => {
     expect(entryFromEvent({ type: 'ready', runId: 'r' })).toBeNull()
   })
 
+  it('hides kept events; the preview shows its own notice', () => {
+    expect(entryFromEvent({ type: 'kept', runId: 'r' })).toBeNull()
+  })
+
   it('shows how long a run took', () => {
     expect(entryFromEvent({ type: 'ran', runId: 'r', elapsedMs: 38 })).toEqual({
       level: 'system',

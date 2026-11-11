@@ -31,6 +31,10 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 - Runner loading approach that worked in M1: **libraries are inlined into the srcdoc as text.** Chromium refuses blob: URLs inside a sandboxed (opaque-origin) iframe ("Not allowed to load local resource"), so the plan's blob-URL approach does not work, and the no-sandbox fallback was not needed. The app page fetches each library once (`src/runner/libraries.ts`; it is service-worker controlled, so this works offline) and inlines the text, escaped with `escapeScript`.
 - Error locations: JavaScript files are separate inline scripts, so `error.lineno` is a srcdoc line, mapped back with the `lineMap` from `buildSrcdoc`. PaperScript is compiled by Paper.js with `url: PAPERSCRIPT_URL`, so positions come from that frame in the stack (or the compiler's `(line:col)` for parse errors).
 - Paper.js listens to both touch and mouse events unless the user agent says "mobile" (Chrome in desktop-site mode, which large Android screens can default to, does not). The runner cancels `touchstart` so a tap fires handlers once.
+- Keep-last-good-render (M2): each run's iframe loads hidden (class `pending`) on top of the one on screen and replaces it only after `ran`; an error first discards it and the host emits `kept` (src/runner/preview.ts). Tests target the shown iframe with `.preview iframe:not(.pending)`.
+- Paper.js 0.17 parse errors end with `(at paperscript-sketch:L:C)`, column 1-based; `cleanErrorMessage` strips it for display.
+- The runner iframe has `color-scheme: normal`: an iframe whose colour scheme differs from the app's gets an opaque white backdrop.
+- Editor (src/editor/): CodeMirror with native selection (no drawSelection) for Android touch handles; colours are token custom properties, so one theme serves both variants.
 - Logs are capped at 1000 per run inside the runner, and the console keeps the last 200 entries.
 
 ## Out of scope for v1

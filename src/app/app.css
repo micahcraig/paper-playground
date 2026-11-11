@@ -13,7 +13,19 @@ button {
   cursor: pointer;
 }
 
-.spike {
+:root {
+  --code-size: 13px;
+  --code-line: 20px;
+}
+
+@media (min-width: 600px) {
+  :root {
+    --code-size: 15px;
+    --code-line: 22px;
+  }
+}
+
+.app {
   box-sizing: border-box;
   height: 100dvh;
   display: flex;
@@ -47,9 +59,46 @@ button {
 }
 
 .muted {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--text-muted);
   font-size: 12px;
   line-height: 16px;
+}
+
+.live {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.live[aria-pressed='true'] {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  box-sizing: border-box;
+}
+
+.live[aria-pressed='true'] .live-dot {
+  border-color: var(--live);
+  background: var(--live);
 }
 
 .run {
@@ -70,7 +119,8 @@ button {
 .samples {
   flex: none;
   display: flex;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 6px;
   padding: 8px;
   background: var(--panel);
@@ -78,6 +128,7 @@ button {
 }
 
 .samples button {
+  flex: none;
   min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--border);
@@ -92,22 +143,94 @@ button {
   box-shadow: inset 0 -2px 0 var(--tab-underline);
 }
 
-.preview {
+.workspace {
   flex: 1 1 0;
-  min-height: 240px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.output {
+  flex: none;
+  height: 45%;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 600px) {
+  .workspace {
+    flex-direction: row;
+  }
+
+  .editor {
+    flex: 1.15 1 0;
+    min-width: 0;
+  }
+
+  .output {
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+}
+
+.preview {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
   background: var(--preview-bg);
 }
 
-.preview iframe {
+.frames {
+  position: absolute;
+  inset: 0;
+}
+
+/* A new run loads on top of the one on screen and stays invisible until it succeeds. */
+.frames iframe {
+  /* The app sets color-scheme; an iframe whose scheme differs from its parent's
+     gets an opaque white backdrop, hiding the preview background. */
+  color-scheme: normal;
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
 }
 
+.frames iframe.pending {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stale {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--warn);
+  font-size: 12px;
+  line-height: 16px;
+  pointer-events: none;
+}
+
 .console {
   flex: none;
-  height: 168px;
+  height: 132px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
