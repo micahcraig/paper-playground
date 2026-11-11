@@ -57,6 +57,8 @@ export class RunnerHost {
   private shown: Run | null = null
   private pending: Run | null = null
   private latestRunId: string | null = null
+  /** The latest run that was shown, discarded or failed to start. */
+  private settledRunId: string | null = null
   private readonly container: HTMLElement
   private readonly listener: (event: RunnerEvent) => void
 
@@ -77,6 +79,7 @@ export class RunnerHost {
       libraries = [await loadLibrary(PAPER_URL)]
     } catch (error) {
       if (this.latestRunId === runId) {
+        this.settledRunId = runId
         const message = error instanceof Error ? error.message : String(error)
         this.listener({ type: 'error', runId, message, line: null, column: null, stack: null, location: null })
       }
@@ -100,6 +103,23 @@ export class RunnerHost {
     return runId
   }
 
+  /** True while a run is loading behind the preview. */
+  get loading(): boolean {
+    return this.latestRunId !== null && this.latestRunId !== this.settledRunId
+  }
+
+  /** True when the preview shows a run that finished its first pass cleanly. */
+  get showingGood(): boolean {
+    return this.shown?.good ?? false
+  }
+
+  /** Cancels a run that is still loading, e.g. when the code it was given is already out of date. */
+  supersede(): void {
+    this.latestRunId = null
+    this.pending?.iframe.remove()
+    this.pending = null
+  }
+
   stop(): void {
     this.latestRunId = null
     this.shown = null
@@ -117,6 +137,7 @@ export class RunnerHost {
     run.iframe.classList.remove(PENDING_CLASS)
     this.shown = run
     this.pending = null
+    this.settledRunId = run.runId
   }
 
   private readonly onMessage = (event: MessageEvent) => {
@@ -124,6 +145,16 @@ export class RunnerHost {
     if (!run) return
     const data: unknown = event.data
     if (!isRunnerMessage(data) || data.runId !== run.runId) return
+
+    if (data.type === 'ran') run.good = true
+    // Settle a loading run before reporting, so listeners see the new state.
+    const action = run === this.pending ? settlePending(data.type, this.shown?.good ?? false) : 'wait'
+    if (action === 'show') this.show(run)
+    else if (action === 'discard') {
+      run.iframe.remove()
+      this.pending = null
+      this.settledRunId = run.runId
+    }
 
     switch (data.type) {
       case 'error':
@@ -134,21 +165,11 @@ export class RunnerHost {
         })
         break
       case 'ran':
-        run.good = true
         this.listener({ ...data, elapsedMs: Math.round(performance.now() - run.startedAt) })
         break
       default:
         this.listener(data)
     }
-
-    if (run !== this.pending) return
-    const action = settlePending(data.type, this.shown?.good ?? false)
-    if (action === 'show') {
-      this.show(run)
-    } else if (action === 'discard') {
-      run.iframe.remove()
-      this.pending = null
-      this.listener({ type: 'kept', runId: run.runId })
-    }
+    if (action === 'discard') this.listener({ type: 'kept', runId: run.runId })
   }
 }

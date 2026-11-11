@@ -7,7 +7,7 @@ import {
   openApp,
   openFullPreview,
   paintedPixels,
-  pickSample,
+  newProject,
   screenPixel,
   shown,
   sketchFrame,
@@ -124,13 +124,13 @@ test.describe('editor', () => {
     expect(lastLine).toBe("console.log('composed');")
   })
 
-  test('loading a sample replaces the code', async ({ page }) => {
+  test('a new project from a template replaces the code', async ({ page }) => {
     await openApp(page)
-    await pickSample(page, 'JavaScript')
+    await newProject(page, 'Ripple in plain JavaScript')
     await expect(content(page)).toContainText('ripple-plain.js · plain JavaScript')
     await expect(content(page)).not.toContainText('ripple.js · PaperScript')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('ripple-plain')
     await expect(page.locator('.title .muted')).toHaveText('JavaScript sketch')
-    await expect(page.locator('.tab')).toHaveText('ripple-plain.js')
+    await expect(page.locator('.tab')).toHaveText(['ripple-plain.js'])
   })
 })

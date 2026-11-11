@@ -27,3 +27,4 @@ export const CollapseIcon = (p: IconProps) => <Icon {...p}><path d="M9 4v5H4M15 
 export const ChevronUpIcon = (p: IconProps) => <Icon {...p}><path d="M6 14.5l6-6 6 6" /></Icon>
 export const ChevronDownIcon = (p: IconProps) => <Icon {...p}><path d="M6 9.5l6 6 6-6" /></Icon>
 export const CloseIcon = (p: IconProps) => <Icon {...p}><path d="M6 6l12 12M18 6L6 18" /></Icon>
+export const PlusIcon = (p: IconProps) => <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>

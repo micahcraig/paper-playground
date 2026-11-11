@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { alphaAt, consoleLines, openFullPreview, paintedPixels, pickSample, shown, sketchFrame } from './helpers.ts'
+import { addFile, alphaAt, consoleLines, openFullPreview, paintedPixels, newProject, replaceCode, shown, sketchFrame } from './helpers.ts'
 
 test.describe('runner', () => {
   test('runs the PaperScript sample and forwards its logs', async ({ page }) => {
     await page.goto('./')
-    await pickSample(page, 'PaperScript')
+    await newProject(page, 'Ripple')
     await expect(consoleLines(page).filter({ hasText: 'rings: 6' })).toHaveCount(1)
     await expect(consoleLines(page).filter({ hasText: /^ran in \d+ ms$/ })).toHaveCount(1)
     const frame = await sketchFrame(page)
@@ -13,7 +13,7 @@ test.describe('runner', () => {
 
   test('animates PaperScript with onFrame', async ({ page }) => {
     await page.goto('./')
-    await pickSample(page, 'PaperScript')
+    await newProject(page, 'Ripple')
     const frame = await sketchFrame(page)
     await expect.poll(() => paintedPixels(frame)).toBeGreaterThan(1000)
     const snapshot = () => frame.evaluate(() => document.querySelector('canvas')!.toDataURL())
@@ -23,7 +23,7 @@ test.describe('runner', () => {
 
   test('runs the plain JavaScript sample', async ({ page }) => {
     await page.goto('./')
-    await pickSample(page, 'JavaScript')
+    await newProject(page, 'Ripple in plain JavaScript')
     await expect(consoleLines(page).filter({ hasText: 'rings: 6' })).toHaveCount(1)
     const frame = await sketchFrame(page)
     await expect.poll(() => paintedPixels(frame)).toBeGreaterThan(1000)
@@ -58,7 +58,7 @@ test.describe('runner', () => {
 
   test('reports a syntax error with its file, line and column', async ({ page }) => {
     await page.goto('./')
-    await pickSample(page, 'Syntax error')
+    await newProject(page, 'Syntax error demo')
     const error = consoleLines(page).filter({ hasText: 'SyntaxError' })
     await expect(error).toHaveCount(1)
     await expect(error.locator('.location')).toHaveText('typo.js:2:35')
@@ -68,7 +68,7 @@ test.describe('runner', () => {
 
   test('a tap reaches PaperScript handlers once and errors map to the file', async ({ page }) => {
     await page.goto('./')
-    await pickSample(page, 'Runtime error')
+    await newProject(page, 'Runtime error demo')
     await expect(consoleLines(page).filter({ hasText: 'tap the preview' })).toHaveCount(1)
     await openFullPreview(page)
     const box = (await shown(page).boundingBox())!
@@ -83,7 +83,7 @@ test.describe('runner', () => {
 
   test('drawing with touch adds a path', async ({ page }) => {
     await page.goto('./')
-    await pickSample(page, 'PaperScript')
+    await newProject(page, 'Ripple')
     const frame = await sketchFrame(page)
     await expect.poll(() => paintedPixels(frame)).toBeGreaterThan(1000)
 
@@ -117,10 +117,15 @@ test.describe('runner', () => {
 
     await context.setOffline(true)
     await page.reload()
-    await pickSample(page, 'PaperScript')
+    await newProject(page, 'Ripple')
     await expect(consoleLines(page).filter({ hasText: 'rings: 6' })).toHaveCount(1)
     const frame = await sketchFrame(page)
     await expect.poll(() => paintedPixels(frame)).toBeGreaterThan(1000)
+
+    // TypeScript goes through sucrase, a separate chunk that must be precached too.
+    await addFile(page, 'offline.ts')
+    await replaceCode(page, "var where: string = 'offline';\nconsole.log('ts ' + where);\n")
+    await expect(consoleLines(page).filter({ hasText: 'ts offline' })).toHaveCount(1)
     await context.setOffline(false)
   })
 })
