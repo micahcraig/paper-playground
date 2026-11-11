@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { caretToEnd, consoleLines, content, isWide, openApp, shown } from './helpers.ts'
+import { caretToEnd, consoleLines, isWide, openApp, shown } from './helpers.ts'
 
 const box = async (locator: Locator) => (await locator.boundingBox())!
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
@@ -23,11 +23,11 @@ test.describe('layout', () => {
 
     const bar = page.getByRole('banner')
     expect((await box(bar)).height).toBe(56)
-    expect(await buttonNames(bar)).toEqual(['Open sketches', 'Live', 'Run', 'More options'])
+    expect(await buttonNames(bar)).toEqual(['Open projects', 'Live', 'Run', 'More options'])
     const run = await box(button(page, 'Run'))
     expect([run.width, run.height]).toEqual([44, 44])
 
-    expect((await box(page.locator('.tab'))).height).toBe(44)
+    expect((await box(page.locator('.tab').first())).height).toBe(44)
     await expect(page.locator('.chip')).toHaveCount(0)
 
     // Floating 152 x 152 preview, 12 px in from the bottom-right of the editor area.
@@ -61,7 +61,7 @@ test.describe('layout', () => {
 
     const bar = page.getByRole('banner')
     expect((await box(bar)).height).toBe(56)
-    expect(await buttonNames(bar)).toEqual(['Open sketches', 'Live', 'Toggle console', 'More options', 'Run'])
+    expect(await buttonNames(bar)).toEqual(['Open projects', 'Live', 'Toggle console', 'More options', 'Run'])
     await expect(page.locator('.chip')).toHaveText('paper 0.17.0')
 
     const editor = await box(page.getByRole('region', { name: 'Editor' }))
@@ -201,16 +201,5 @@ test.describe('layout', () => {
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(26, 27, 38)')
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog', { name: 'Options' })).toBeHidden()
-  })
-
-  test('the sketches sheet loads a sample', async ({ page }) => {
-    await openApp(page)
-    await button(page, 'Open sketches').click()
-    const sheet = page.getByRole('dialog', { name: 'Sketches' })
-    await expect(sheet).toBeVisible()
-    await expect(sheet.getByRole('button', { name: /^PaperScript/ })).toHaveAttribute('aria-pressed', 'true')
-    await sheet.getByRole('button', { name: /^JavaScript/ }).click()
-    await expect(sheet).toBeHidden()
-    await expect(content(page)).toContainText('ripple-plain.js')
   })
 })

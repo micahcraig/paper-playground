@@ -38,6 +38,10 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 - Layouts (M3): `.app.wide` / `.app.narrow` from `WIDE_QUERY` (600 px). The preview element never moves in the DOM (moving an iframe reloads it); CSS places it docked, as the 152 px thumbnail, or full screen. In the thumbnail the sketch renders at full-preview size and is CSS-scaled, so expanding does not resize it, and it ignores touches.
 - Symbol keys cancel pointerdown/mousedown so the editor keeps focus and the keyboard stays open.
 - E2E helpers live in e2e/helpers.ts (imported as `./helpers.ts`); interact with the sketch through `openFullPreview` in the folded project.
+- Projects (M4, src/storage/): one IndexedDB key per project (`project:<id>`) via idb-keyval, plus `meta:lastOpened`. Typing autosaves after 400 ms; structural changes save at once; on pagehide the unsaved project is also copied synchronously to localStorage (`restoreRescued` applies it at launch). Tests use `memoryKeyValue()` instead of a fake IndexedDB.
+- TypeScript: `.ts` files go through sucrase (lazy chunk, precached) in src/runner/typescript.ts; sucrase keeps line numbers and reports 1-based `(line:col)`.
+- PaperScript parses with Paper.js's bundled acorn, which is ES5 only: `let`, `const`, arrows and template strings are syntax errors in PaperScript mode (JavaScript mode is fine). Paper uses a newer `self.acorn` (>= 8) if one is loaded first.
+- The Preview region is `aria-busy` while a run loads; E2E helpers wait on it (`settled`) instead of racing the iframe swap.
 - Logs are capped at 1000 per run inside the runner, and the console keeps the last 200 entries.
 
 ## Out of scope for v1

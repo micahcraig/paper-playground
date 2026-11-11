@@ -35,18 +35,49 @@ export function alphaAt(frame: Frame, x: number, y: number): Promise<number> {
   )
 }
 
+/** Waits until no run is loading behind the preview. */
+export async function settled(page: Page) {
+  await expect(page.getByRole('region', { name: 'Preview' })).not.toHaveAttribute('aria-busy', 'true')
+}
+
 /** Opens the app and waits for the starter sketch's first good run. */
 export async function openApp(page: Page) {
   await page.goto('./')
   await expect(consoleLines(page).filter({ hasText: /^ran in \d+ ms$/ })).toHaveCount(1)
+  await settled(page)
 }
 
-/** Loads a sample sketch from the sketches sheet. */
-export async function pickSample(page: Page, label: string) {
-  await page.getByRole('button', { name: 'Open sketches' }).click()
-  const sheet = page.getByRole('dialog', { name: 'Sketches' })
-  await sheet.getByRole('button', { name: new RegExp(`^${label}\\b`) }).click()
+/** Creates a project from a template through the Projects sheet. */
+export async function newProject(page: Page, template: string) {
+  await page.getByRole('button', { name: 'Open projects' }).click()
+  await page.getByRole('dialog', { name: 'Projects' }).getByRole('button', { name: 'New project' }).click()
+  const sheet = page.getByRole('dialog', { name: 'New project' })
+  const heading = page.getByRole('heading', { level: 1 })
+  const before = await heading.innerText()
+  await sheet.getByRole('button', { name: template, exact: true }).click()
   await expect(sheet).toBeHidden()
+  await expect(heading).not.toHaveText(before)
+  await settled(page)
+}
+
+/** The tab of the file shown in the editor. */
+export const activeTab = (page: Page) => page.locator('.tab[aria-current="true"]')
+
+/** Adds a file through the New file button and waits for its tab. */
+export async function addFile(page: Page, name: string) {
+  await page.getByRole('button', { name: 'New file' }).click()
+  const sheet = page.getByRole('dialog', { name: 'New file' })
+  await sheet.getByLabel('File name').fill(name)
+  await sheet.getByRole('button', { name: 'Add' }).click()
+  await expect(sheet).toBeHidden()
+  await expect(activeTab(page)).toHaveText(/\.[a-z]+$/.test(name) ? name : `${name}.js`)
+}
+
+/** Replaces the active file's code. */
+export async function replaceCode(page: Page, code: string) {
+  await content(page).click()
+  await page.keyboard.press('ControlOrMeta+A')
+  await page.keyboard.insertText(code)
 }
 
 /** The narrow layout's floating preview ignores touches; open it to interact. */
