@@ -21,7 +21,7 @@ import { ProjectStore, indexedDbKeyValue, requestPersistentStorage, restoreRescu
 import { TEMPLATES } from '../storage/templates'
 import { appendEntry, entryFromEvent, type ConsoleEntry } from './console'
 import { debounce } from './debounce'
-import { PREVIEW_TOOLBAR, THUMB_SIZE, WIDE_QUERY, thumbTransform, useMediaQuery, useViewport } from './layout'
+import { PREVIEW_TOOLBAR, SHORT_QUERY, WIDE_QUERY, thumbSize, thumbTransform, useMediaQuery, useViewport } from './layout'
 import { setLigatures, useLigatures } from './ligatures'
 import { THEME_NAMES, setThemeOverride, useTheme, useThemeOverride, type ThemeOverride } from './theme'
 import { useProject } from './useProject'
@@ -62,6 +62,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   const themeOverride = useThemeOverride()
   const ligatures = useLigatures()
   const wide = useMediaQuery(WIDE_QUERY)
+  const short = useMediaQuery(SHORT_QUERY)
   const viewport = useViewport()
   const { project, ref: projectRef, update, replace, flush, saveFailed } = useProject(store)
 
@@ -78,7 +79,10 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   const [busy, setBusy] = useState(false)
   const [entries, setEntries] = useState<ConsoleEntry[]>([])
   const [fullPreview, setFullPreview] = useState(false)
-  const [consoleShown, setConsoleShown] = useState(true)
+  // Null until the user toggles it: then the console starts hidden on short
+  // screens (a folded phone turned sideways) and shown elsewhere.
+  const [consoleChoice, setConsoleChoice] = useState<boolean | null>(null)
+  const consoleShown = consoleChoice ?? !short
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sheet, setSheet] = useState<SheetName | null>(null)
   const [nameRequest, setNameRequest] = useState<NameRequest | null>(null)
@@ -349,7 +353,8 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   // into the floating thumbnail, so expanding it does not resize the sketch.
   const fullWidth = viewport.width
   const fullHeight = Math.max(0, viewport.height - viewport.keyboardInset - PREVIEW_TOOLBAR)
-  const thumb = thumbTransform(THUMB_SIZE, fullWidth, fullHeight)
+  const thumbSide = thumbSize(viewport.width)
+  const thumb = thumbTransform(thumbSide, fullWidth, fullHeight)
   const previewMode = fullPreview ? 'full' : wide ? 'docked' : 'thumb'
   const previewStyle = {
     '--full-w': `${fullWidth}px`,
@@ -360,7 +365,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   }
 
   return (
-    <div class={`app ${wide ? 'wide' : 'narrow'}`} style={{ '--keyboard-inset': `${viewport.keyboardInset}px` }}>
+    <div class={`app ${wide ? 'wide' : 'narrow'}`} style={{ '--keyboard-inset': `${viewport.keyboardInset}px`, '--thumb-size': `${thumbSide}px` }}>
       <header class="bar">
         <button type="button" class="icon-button" aria-label="Open projects" onClick={() => openSheet('projects')}>
           <MenuIcon />
@@ -369,9 +374,9 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
           <h1>{project?.name ?? ''}</h1>
           <span class="muted">{project ? `${MODE_NAMES[project.mode]} sketch` : loadError ?? 'Loading…'}</span>
         </div>
-        <button type="button" class="live" aria-pressed={live} onClick={toggleLive}>
+        <button type="button" class="live" aria-label="Live" aria-pressed={live} onClick={toggleLive}>
           <span class="live-dot" aria-hidden="true" />
-          Live
+          <span class="live-label">Live</span>
         </button>
         {wide && (
           <button
@@ -379,7 +384,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
             class="icon-button"
             aria-label="Toggle console"
             aria-pressed={consoleShown}
-            onClick={() => setConsoleShown((shown) => !shown)}
+            onClick={() => setConsoleChoice(!consoleShown)}
           >
             <ConsoleIcon />
           </button>

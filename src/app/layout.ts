@@ -3,8 +3,21 @@ import { useEffect, useState } from 'preact/hooks'
 /** The two layouts switch at this width (UI spec in PLAN.md). */
 export const WIDE_QUERY = '(min-width: 600px)'
 
-/** Side of the floating preview in the narrow layout, in CSS px. */
-export const THUMB_SIZE = 152
+/** Whether the viewport is short, as on a folded phone turned sideways (about 844 x 390). */
+export const SHORT_QUERY = '(max-height: 479px)'
+
+/** The floating preview's side at the Pixel Fold's folded width (390 px), and its largest. */
+export const THUMB_MIN = 152
+export const THUMB_MAX = 200
+
+/**
+ * Side of the floating preview in the narrow layout, in CSS px: 152 on the
+ * Pixel Fold, growing with the width on wider narrow screens (tall flip
+ * phones, the iPhone Fold folded) and never below 152 on narrow covers.
+ */
+export function thumbSize(viewportWidth: number): number {
+  return Math.min(THUMB_MAX, Math.max(THUMB_MIN, Math.round(viewportWidth * 0.39)))
+}
 
 /** Height of the preview toolbar, in CSS px. */
 export const PREVIEW_TOOLBAR = 44
