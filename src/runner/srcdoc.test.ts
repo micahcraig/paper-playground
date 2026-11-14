@@ -80,6 +80,29 @@ describe('buildSrcdoc in JavaScript mode', () => {
   })
 })
 
+describe('buildSrcdoc without Paper.js', () => {
+  const build = () =>
+    buildSrcdoc({ runId: 'r', mode: 'javascript', files: [{ name: 'p5.js', code: 'function setup() {}' }], libraries: ['window.p5 = 1;'], paper: false })
+
+  it('neither sets up Paper.js nor adds its canvas', () => {
+    const { html } = build()
+    expect(html).not.toContain('paper.setup')
+    expect(html).not.toContain('paper.install')
+    expect(html).not.toContain('id="canvas"')
+    expect(html).toContain('__pp.ready()')
+    expect(html).toContain('function setup() {}')
+  })
+
+  it('still maps lines after the libraries', () => {
+    const { html, lineMap } = build()
+    expect(html.split('\n')[lineMap[0].startLine - 1]).toBe('function setup() {}')
+  })
+
+  it('refuses PaperScript, which needs Paper.js', () => {
+    expect(() => buildSrcdoc({ runId: 'r', mode: 'paperscript', files: [], libraries: [], paper: false })).toThrow('PaperScript needs Paper.js')
+  })
+})
+
 describe('buildSrcdoc in PaperScript mode', () => {
   const files = [
     { name: 'palette.js', code: "var colors = ['#7aa2f7'];\n" },

@@ -10,7 +10,7 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 - `npm run typecheck` TypeScript check
 - `npm test` Vitest
 - `npx playwright test` end-to-end tests at Pixel Fold sizes (builds and serves the production bundle)
-- `npm run build` production build (uses the Pages base path)
+- `npm run build` production build (uses the Pages base path; runs `npm run vendor` first)
 
 ## Conventions
 
@@ -42,6 +42,8 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 - TypeScript: `.ts` files go through sucrase (lazy chunk, precached) in src/runner/typescript.ts; sucrase keeps line numbers and reports 1-based `(line:col)`.
 - PaperScript parses with acorn 8.19.0 (pinned runtime dependency): Paper.js's bundled acorn is ES5 only, but Paper uses `self.acorn` when it is >= 8, so the runner inlines `acorn/dist/acorn.js` (the UMD build; imported by node_modules path because the package `exports` hides it) before Paper.js in PaperScript mode only.
 - The Preview region is `aria-busy` while a run loads; E2E helpers wait on it (`settled`) instead of racing the iframe swap.
+- Libraries (M5): src/libs/registry.ts lists paper 0.17.0, p5 2.3.4, three 0.186.1 and d3 7.9.0 (a unit test checks them against package.json); src/libs/urls.ts maps each to its classic-script asset. Projects store a normalized list; PaperScript always includes paper. Only the selected libraries are fetched and inlined, and without paper the runner skips `paper.setup` and the `#canvas`.
+- three ships ES modules only, so `npm run vendor` (run by predev/prebuild) bundles it with Vite's library mode into src/vendor/generated/three.global.js (gitignored), an IIFE defining `THREE`. p5 and d3 are imported from node_modules by path because their package `exports` hide the UMD builds.
 - Logs are capped at 1000 per run inside the runner, and the console keeps the last 200 entries.
 
 ## Out of scope for v1

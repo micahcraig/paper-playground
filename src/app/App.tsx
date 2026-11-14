@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { createEditor, type CodeEditor } from '../editor/editor'
+import { LIBRARIES, libraryLabel, normalizeLibraries, toggleLibrary, type LibraryId } from '../libs/registry'
 import { formatLocation } from '../runner/errors'
 import { RunnerHost } from '../runner/host'
-import { PAPER_VERSION } from '../runner/libraries'
 import { prepareFiles } from '../runner/typescript'
 import {
   MAX_FILES,
@@ -53,7 +53,7 @@ const THEME_CHOICES: { value: ThemeOverride; label: string }[] = [
 
 const IMMEDIATE = { immediate: true }
 
-type SheetName = 'projects' | 'templates' | 'more' | 'file' | 'delete-project' | 'delete-file'
+type SheetName = 'projects' | 'templates' | 'more' | 'file' | 'delete-project' | 'delete-file' | 'libraries'
 
 export function App({ store: givenStore }: { store?: ProjectStore }) {
   const store = useMemo(() => givenStore ?? new ProjectStore(indexedDbKeyValue()), [givenStore])
@@ -104,7 +104,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
         setBusy(false)
         return
       }
-      void host.run({ mode: current.mode, files: prepared.files })
+      void host.run({ mode: current.mode, files: prepared.files, libraries: current.libraries })
     },
     [projectRef],
   )
@@ -255,7 +255,12 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
 
   const setMode = (mode: Project['mode']) => {
     if (projectRef.current?.mode === mode) return
-    update((p) => ({ ...p, mode }), IMMEDIATE)
+    update((p) => ({ ...p, mode, libraries: normalizeLibraries(p.libraries, mode) }), IMMEDIATE)
+    runImmediately()
+  }
+
+  const toggleProjectLibrary = (id: LibraryId) => {
+    update((p) => ({ ...p, libraries: toggleLibrary(p.libraries, id, p.mode) }), IMMEDIATE)
     runImmediately()
   }
 
@@ -425,10 +430,10 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
             </button>
           )}
         </div>
-        {wide && (
-          <span class="chip" title="Libraries loaded into the sketch">
-            paper {PAPER_VERSION}
-          </span>
+        {wide && project && (
+          <button type="button" class="chip-button" aria-label={`Libraries: ${libraryLabel(project.libraries)}`} onClick={() => openSheet('libraries')}>
+            <span class="chip">{libraryLabel(project.libraries)}</span>
+          </button>
         )}
       </nav>
 
@@ -599,6 +604,13 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
             Delete project
           </button>
         </div>
+        <h3 class="sheet-label">Libraries</h3>
+        <div class="choice-list">
+          <button type="button" class="choice" onClick={() => openSheet('libraries')}>
+            <span>Choose libraries</span>
+            <span class="muted">{project ? libraryLabel(project.libraries) : ''}</span>
+          </button>
+        </div>
         <h3 class="sheet-label">Language</h3>
         <div class="choice-list">
           {(['paperscript', 'javascript'] as const).map((mode) => (
@@ -623,6 +635,34 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
               {choice.label}
             </button>
           ))}
+        </div>
+      </Sheet>
+
+      <Sheet open={sheet === 'libraries'} title="Libraries" onClose={() => setSheet(null)}>
+        <p class="sheet-note">Only the libraries you pick are loaded into the sketch. All of them work offline.</p>
+        <div class="choice-list">
+          {LIBRARIES.map((library) => {
+            const required = library.id === 'paper' && project?.mode === 'paperscript'
+            return (
+              <button
+                key={library.id}
+                type="button"
+                class="choice stacked"
+                aria-label={`${library.name} ${library.version}`}
+                aria-describedby={`library-${library.id}`}
+                aria-pressed={project?.libraries.includes(library.id) ?? false}
+                disabled={required}
+                onClick={() => toggleProjectLibrary(library.id)}
+              >
+                <span aria-hidden="true">
+                  {library.name} <span class="muted">{library.version}</span>
+                </span>
+                <span class="muted" id={`library-${library.id}`}>
+                  {required ? 'Required by PaperScript' : library.description} · global <code>{library.global}</code>
+                </span>
+              </button>
+            )
+          })}
         </div>
       </Sheet>
 

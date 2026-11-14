@@ -1,5 +1,7 @@
 import { cleanErrorMessage, resolveErrorLocation, type SourceLocation } from './errors'
-import { ACORN_URL, PAPER_URL, loadLibrary } from './libraries'
+import { LIBRARY_URLS } from '../libs/urls'
+import { normalizeLibraries, type LibraryId } from '../libs/registry'
+import { ACORN_URL, loadLibrary } from './libraries'
 import { settlePending } from './preview'
 import {
   isRunnerMessage,
@@ -14,6 +16,8 @@ import { buildSrcdoc, type LineSegment, type SketchFile } from './srcdoc'
 export interface RunRequest {
   mode: SketchMode
   files: SketchFile[]
+  /** Libraries to load; only these are fetched and inlined. Defaults to Paper.js. */
+  libraries?: readonly LibraryId[]
 }
 
 /** The new run failed before finishing, so the previous render stays on screen. */
@@ -73,12 +77,14 @@ export class RunnerHost {
     const runId = nextRunId()
     const startedAt = performance.now()
     this.latestRunId = runId
+    const selected = normalizeLibraries(request.libraries ?? ['paper'], request.mode)
 
     let libraries: string[]
     try {
       // PaperScript also gets a modern acorn, so let, const, arrows and
       // template strings parse; plain JavaScript is parsed by the browser.
-      const urls = request.mode === 'paperscript' ? [ACORN_URL, PAPER_URL] : [PAPER_URL]
+      const urls = selected.map((id) => LIBRARY_URLS[id])
+      if (request.mode === 'paperscript') urls.unshift(ACORN_URL)
       libraries = await Promise.all(urls.map((url) => loadLibrary(url)))
     } catch (error) {
       if (this.latestRunId === runId) {
@@ -91,7 +97,13 @@ export class RunnerHost {
     // A newer run started while the libraries were loading.
     if (this.latestRunId !== runId) return runId
 
-    const { html, lineMap } = buildSrcdoc({ runId, mode: request.mode, files: request.files, libraries })
+    const { html, lineMap } = buildSrcdoc({
+      runId,
+      mode: request.mode,
+      files: request.files,
+      libraries,
+      paper: selected.includes('paper'),
+    })
     const iframe = document.createElement('iframe')
     iframe.setAttribute('sandbox', 'allow-scripts')
     iframe.title = 'Sketch preview'

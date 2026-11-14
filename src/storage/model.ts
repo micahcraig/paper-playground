@@ -1,3 +1,4 @@
+import { normalizeLibraries, type LibraryId } from '../libs/registry'
 import type { SketchMode } from '../runner/protocol'
 
 export interface ProjectFile {
@@ -10,8 +11,8 @@ export interface Project {
   id: string
   name: string
   mode: SketchMode
-  /** Library ids loaded into the runner. Only "paper" until M5 adds the picker. */
-  libraries: string[]
+  /** Libraries loaded into the runner, normalized (see normalizeLibraries). */
+  libraries: LibraryId[]
   /** In tab order, which is also run order. */
   files: ProjectFile[]
   activeFileId: string
@@ -94,7 +95,7 @@ export function uniqueFileName(base: string, taken: string[]): string {
 }
 
 export function makeProject(
-  input: { name: string; mode: SketchMode; files: { name: string; code: string }[]; libraries?: string[] },
+  input: { name: string; mode: SketchMode; files: { name: string; code: string }[]; libraries?: readonly string[] },
   now = Date.now(),
 ): Project {
   const files = input.files.map((file) => ({ id: newId(), name: file.name, code: file.code }))
@@ -102,7 +103,7 @@ export function makeProject(
     id: newId(),
     name: input.name,
     mode: input.mode,
-    libraries: input.libraries ?? ['paper'],
+    libraries: normalizeLibraries(input.libraries ?? ['paper'], input.mode),
     files,
     activeFileId: files[0].id,
     createdAt: now,
@@ -130,7 +131,7 @@ export interface ProjectExport {
   version: typeof EXPORT_VERSION
   name: string
   mode: SketchMode
-  libraries: string[]
+  libraries: LibraryId[]
   files: { name: string; code: string }[]
 }
 
@@ -175,8 +176,10 @@ export function parseProjectExport(text: string): ProjectExport {
     if (!check.ok || check.name !== file.name) throw new Error(`Bad file name: ${file.name}`)
     files.push({ name: file.name, code: file.code })
   }
-  const libraries = Array.isArray(data.libraries) && data.libraries.every((id) => typeof id === 'string')
-    ? (data.libraries as string[])
-    : ['paper']
+  // Unknown libraries (from a newer version, say) are dropped rather than refused.
+  const libraries = normalizeLibraries(
+    Array.isArray(data.libraries) ? data.libraries.filter((id): id is string => typeof id === 'string') : ['paper'],
+    data.mode,
+  )
   return { format: EXPORT_FORMAT, version: EXPORT_VERSION, name: nameCheck.name, mode: data.mode, libraries, files }
 }
