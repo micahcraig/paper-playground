@@ -15,8 +15,8 @@ export const editorTheme = EditorView.theme({
   '&.cm-focused': { outline: 'none' },
   '.cm-scroller': {
     fontFamily: 'var(--font-code)',
-    // Ligatures would show => as one arrow glyph, unlike the key that types it.
-    fontVariantLigatures: 'none',
+    // Off by default so => matches the key that types it; Options can turn them on.
+    fontVariantLigatures: 'var(--code-ligatures)',
     fontSize: 'var(--code-size)',
     lineHeight: 'var(--code-line)',
   },
