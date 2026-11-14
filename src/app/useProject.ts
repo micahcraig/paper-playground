@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { Project } from '../storage/model'
 import { rescueProject, type ProjectStore } from '../storage/store'
 import { debounce } from './debounce'
+import { createSaver } from './saver'
 
 /** Autosave runs this long after the last change. */
 export const AUTOSAVE_DELAY_MS = 400
@@ -26,21 +27,14 @@ export function useProject(store: ProjectStore): ProjectState {
   const [project, setProject] = useState<Project | null>(null)
   const [saveFailed, setSaveFailed] = useState(false)
   const ref = useRef<Project | null>(null)
-  const dirty = useRef(false)
 
   const api = useMemo(() => {
-    const save = (): Promise<void> => {
-      const current = ref.current
-      if (!current || !dirty.current) return Promise.resolve()
-      dirty.current = false
-      return store.save(current).then(
-        () => setSaveFailed(false),
-        () => {
-          dirty.current = true
-          setSaveFailed(true)
-        },
-      )
-    }
+    const saver = createSaver(
+      () => ref.current,
+      (project) => store.save(project),
+      setSaveFailed,
+    )
+    const save = () => saver.save()
     const saveSoon = debounce(() => void save(), AUTOSAVE_DELAY_MS)
     return {
       update(change: (project: Project) => Project, options?: { immediate?: boolean }) {
@@ -48,7 +42,7 @@ export function useProject(store: ProjectStore): ProjectState {
         const next = { ...change(ref.current), updatedAt: Date.now() }
         ref.current = next
         setProject(next)
-        dirty.current = true
+        saver.changed()
         if (options?.immediate) {
           saveSoon.cancel()
           void save()
@@ -56,15 +50,18 @@ export function useProject(store: ProjectStore): ProjectState {
           saveSoon()
         }
       },
-      /** For pagehide: start the save, and keep a synchronous copy in case it never lands. */
+      /**
+       * For pagehide: start the save, and keep a synchronous copy in case it
+       * never lands. A save already in flight counts too: unloading can drop it.
+       */
       rescue() {
-        if (ref.current && dirty.current) rescueProject(ref.current)
+        if (ref.current && saver.unsaved) rescueProject(ref.current)
         saveSoon.cancel()
         void save()
       },
       replace(next: Project | null) {
         saveSoon.cancel()
-        dirty.current = false
+        saver.reset()
         ref.current = next
         setProject(next)
       },
