@@ -357,7 +357,7 @@ button:focus-visible {
 }
 
 /* The narrow layout sizes the sketch like the full preview and scales it down. */
-.narrow .preview .frames {
+.narrow:not(.fold-tabletop) .preview .frames {
   inset: auto;
   left: 0;
   top: 0;
@@ -847,4 +847,72 @@ button:focus-visible {
   .wide .workspace {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/*
+ * Fold postures (src/app/layout.ts useFoldLayout). --fold-first is where the
+ * first screen segment ends and --fold-gap the hinge width, in CSS px.
+ */
+
+/* Book: half-open with the hinge upright. The editor/preview split sits on the hinge. */
+.wide.fold-book .workspace {
+  grid-template-columns: var(--fold-first) var(--fold-gap) minmax(0, 1fr);
+}
+
+.wide.fold-book .editor {
+  grid-column: 1;
+}
+
+.wide.fold-book .preview.docked,
+.wide.fold-book .console {
+  grid-column: 3;
+}
+
+/*
+ * Tabletop: half-folded with the hinge level. The top bar and preview fill
+ * the upper half; tabs, editor, console and keys the lower half. The preview
+ * element does not move in the DOM: main and the stage area turn into
+ * display: contents so their children join this grid.
+ */
+.app.fold-tabletop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, calc(var(--fold-first) - 56px)) var(--fold-gap) auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'bar' 'preview' 'hinge' 'banner' 'tabs' 'editor' 'console' 'symbols';
+}
+
+.fold-tabletop .workspace,
+.fold-tabletop .stage-area {
+  display: contents;
+}
+
+.fold-tabletop .bar {
+  grid-area: bar;
+}
+
+.fold-tabletop .banner {
+  grid-area: banner;
+}
+
+.fold-tabletop .tabs {
+  grid-area: tabs;
+}
+
+.app.fold-tabletop .editor {
+  grid-area: editor;
+  --editor-tail: 32px;
+}
+
+.app.fold-tabletop .preview.docked {
+  grid-area: preview;
+  border-left: 0;
+}
+
+.app.fold-tabletop .console {
+  grid-area: console;
+  border-left: 0;
+}
+
+.fold-tabletop .symbols {
+  grid-area: symbols;
 }
