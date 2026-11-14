@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import paperPackage from '../../node_modules/paper/package.json?raw'
-import { clearLibraryCache, loadLibrary, PAPER_VERSION } from './libraries'
+import acornPackage from '../../node_modules/acorn/package.json?raw'
+import { ACORN_VERSION, clearLibraryCache, loadLibrary, PAPER_VERSION } from './libraries'
 
 function respond(body: string, status = 200) {
   return Promise.resolve(new Response(body, { status }))
@@ -33,5 +34,13 @@ describe('PAPER_VERSION', () => {
   it('matches the installed paper package', () => {
     const pkg = JSON.parse(paperPackage) as { version: string }
     expect(PAPER_VERSION).toBe(pkg.version)
+  })
+})
+
+describe('ACORN_VERSION', () => {
+  it('matches the installed acorn package, and is new enough for Paper.js to use', () => {
+    const pkg = JSON.parse(acornPackage) as { version: string }
+    expect(ACORN_VERSION).toBe(pkg.version)
+    expect(Number.parseInt(ACORN_VERSION, 10)).toBeGreaterThanOrEqual(8)
   })
 })

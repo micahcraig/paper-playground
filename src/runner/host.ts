@@ -1,5 +1,5 @@
 import { cleanErrorMessage, resolveErrorLocation, type SourceLocation } from './errors'
-import { PAPER_URL, loadLibrary } from './libraries'
+import { ACORN_URL, PAPER_URL, loadLibrary } from './libraries'
 import { settlePending } from './preview'
 import {
   isRunnerMessage,
@@ -76,7 +76,10 @@ export class RunnerHost {
 
     let libraries: string[]
     try {
-      libraries = [await loadLibrary(PAPER_URL)]
+      // PaperScript also gets a modern acorn, so let, const, arrows and
+      // template strings parse; plain JavaScript is parsed by the browser.
+      const urls = request.mode === 'paperscript' ? [ACORN_URL, PAPER_URL] : [PAPER_URL]
+      libraries = await Promise.all(urls.map((url) => loadLibrary(url)))
     } catch (error) {
       if (this.latestRunId === runId) {
         this.settledRunId = runId
