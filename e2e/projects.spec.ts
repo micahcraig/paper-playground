@@ -121,6 +121,17 @@ test.describe('projects', () => {
     await fresh.close()
   })
 
+  test('typing in the New file sheet replaces the suggested stem and keeps .js', async ({ page }) => {
+    await openApp(page)
+    await page.getByRole('button', { name: 'New file' }).click()
+    const field = page.getByRole('dialog', { name: 'New file' }).getByLabel('File name')
+    await expect(field).toBeFocused()
+    // "sketch" is selected in "sketch.js".
+    await expect.poll(() => field.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd])).toEqual([0, 6])
+    await page.keyboard.type('shapes')
+    await expect(field).toHaveValue('shapes.js')
+  })
+
   test('a file that is not a project is refused', async ({ page }, testInfo) => {
     await openApp(page)
     const path = testInfo.outputPath('bad.json')

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
+import { stemSelection } from './nameSelection'
 import { Sheet } from './Sheet'
 
 export interface NameRequest {
@@ -24,9 +25,9 @@ export function NameSheet({ request, onClose }: { request: NameRequest | null; o
     requestAnimationFrame(() => {
       const el = input.current
       if (!el) return
-      el.focus()
-      const dot = request.initial.lastIndexOf('.')
-      el.setSelectionRange(0, dot > 0 ? dot : request.initial.length)
+      const range = stemSelection(request.initial, el)
+      if (document.activeElement !== el) el.focus()
+      if (range) el.setSelectionRange(range[0], range[1])
     })
   }, [request])
 
