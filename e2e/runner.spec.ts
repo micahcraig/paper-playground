@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { addFile, alphaAt, consoleLines, openFullPreview, paintedPixels, newProject, replaceCode, shown, sketchFrame } from './helpers.ts'
+import { addFile, alphaAt, consoleLines, newProject, openApp, openFullPreview, paintedPixels, replaceCode, shown, sketchFrame } from './helpers.ts'
 
 test.describe('runner', () => {
   test('runs the PaperScript sample and forwards its logs', async ({ page }) => {
@@ -127,5 +127,45 @@ test.describe('runner', () => {
     await replaceCode(page, "var where: string = 'offline';\nconsole.log('ts ' + where);\n")
     await expect(consoleLines(page).filter({ hasText: 'ts offline' })).toHaveCount(1)
     await context.setOffline(false)
+  })
+})
+
+test.describe('modern syntax in PaperScript', () => {
+  test('let, const, arrows, template strings and operator overloading all work', async ({ page }) => {
+    await openApp(page)
+    await replaceCode(
+      page,
+      [
+        'const offsets = [0, 1, 2].map((i) => i * 30);',
+        'let total = 0;',
+        'for (const dx of offsets) {',
+        '  const dot = new Path.Circle(view.center + [dx, 0], 6);',
+        "  dot.fillColor = '#7aa2f7';",
+        '  total += 1;',
+        '}',
+        'const shifted = view.center + new Point(10, 0);',
+        'console.log(`dots: ${total}, shifted by ${shifted.x - view.center.x}`);',
+        '',
+      ].join('\n'),
+    )
+    await expect(consoleLines(page).filter({ hasText: 'dots: 3, shifted by 10' })).toHaveCount(1)
+    await expect(consoleLines(page).filter({ hasText: 'SyntaxError' })).toHaveCount(0)
+  })
+
+  test('a modern-syntax error still points at the line', async ({ page }) => {
+    await openApp(page)
+    await replaceCode(page, 'const ok = () => 1;\nconst broken = (;\n')
+    const error = consoleLines(page).filter({ hasText: 'SyntaxError' })
+    await expect(error).toHaveCount(1)
+    await expect(error.locator('.location')).toHaveText(/^ripple\.js:2:\d+$/)
+    await expect(error.locator('.text')).not.toContainText('paperscript-sketch')
+  })
+
+  test('a runtime error inside an arrow function maps to its line', async ({ page }) => {
+    await openApp(page)
+    await replaceCode(page, "const boom = () => missing.value;\nconsole.log('before');\nboom();\n")
+    const error = consoleLines(page).filter({ hasText: 'ReferenceError' })
+    await expect(error).toHaveCount(1)
+    await expect(error.locator('.location')).toHaveText(/^ripple\.js:1:\d+$/)
   })
 })

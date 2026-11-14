@@ -1,8 +1,16 @@
 // The minified full build: it includes the PaperScript compiler and is half the size.
 import paperUrl from 'paper/dist/paper-full.min.js?url'
+// A modern parser for PaperScript. Paper.js bundles an ES5-only acorn, but
+// uses `self.acorn` instead when it is version 8 or later.
+// The UMD build defines self.acorn; the package exports field hides it, hence the path.
+import acornUrl from '../../node_modules/acorn/dist/acorn.js?url'
 
 /** The pinned Paper.js version, shown in the library chip. */
 export const PAPER_VERSION = '0.17.0'
+
+/** The pinned acorn version that parses PaperScript. */
+export const ACORN_VERSION = '8.19.0'
+export const ACORN_URL = acornUrl
 
 /** Library source URLs, emitted into dist/assets and precached by the service worker. */
 export const PAPER_URL = paperUrl
