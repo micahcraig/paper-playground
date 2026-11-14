@@ -61,7 +61,12 @@ export class ProjectStore {
     const template = getTemplate(templateId)
     const taken = (await this.list()).map((p) => p.name)
     const project = makeProject(
-      { name: uniqueName(template.projectName, taken), mode: template.mode, files: template.files },
+      {
+        name: uniqueName(template.projectName, taken),
+        mode: template.mode,
+        libraries: template.libraries,
+        files: template.files,
+      },
       now,
     )
     await this.save(project)
@@ -70,7 +75,7 @@ export class ProjectStore {
 
   /** Saves a project read from an export as a new project. */
   async importProject(
-    data: { name: string; mode: Project['mode']; libraries: string[]; files: { name: string; code: string }[] },
+    data: { name: string; mode: Project['mode']; libraries: readonly string[]; files: { name: string; code: string }[] },
     now = Date.now(),
   ): Promise<Project> {
     const taken = (await this.list()).map((p) => p.name)

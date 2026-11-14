@@ -11,6 +11,11 @@ export interface BuildOptions {
   files: SketchFile[]
   /** Library source text, in load order. Inlined because sandboxed iframes cannot load blob URLs. */
   libraries: string[]
+  /**
+   * Paper.js is among the libraries: set up its canvas (and, for JavaScript,
+   * install it on window). Defaults to true; PaperScript always needs it.
+   */
+  paper?: boolean
 }
 
 /** Where one file's first line sits in the runner's line coordinates. */
@@ -135,22 +140,26 @@ const HEAD = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>html,body{margin:0;height:100%;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:none}</style>
+<style>html,body{margin:0;height:100%;overflow:hidden}canvas{display:block;touch-action:none}#canvas{width:100%;height:100%}</style>
 `
 
 /** Builds the runner document for one run. */
-export function buildSrcdoc({ runId, mode, files, libraries }: BuildOptions): BuiltSrcdoc {
+export function buildSrcdoc({ runId, mode, files, libraries, paper = true }: BuildOptions): BuiltSrcdoc {
+  if (mode === 'paperscript' && !paper) throw new Error('PaperScript needs Paper.js')
   let html = HEAD
   html += `<script>${bootstrap(runId)}</script>\n`
   for (const library of libraries) html += `<script>${escapeScript(library)}</script>\n`
-  html += `</head>\n<body>\n<canvas id="canvas" data-paper-resize="true"></canvas>\n`
+  html += `</head>\n<body>\n`
+  if (paper) html += `<canvas id="canvas" data-paper-resize="true"></canvas>\n`
 
   const lineMap: LineSegment[] = []
 
   if (mode === 'javascript') {
     // Each file is its own classic script, so its top-level declarations are shared
     // and a syntax error in one file is reported with a line inside that file.
-    html += `<script>paper.install(window); paper.setup('canvas'); __pp.ready();</script>\n`
+    html += paper
+      ? `<script>paper.install(window); paper.setup('canvas'); __pp.ready();</script>\n`
+      : `<script>__pp.ready();</script>\n`
     for (const file of files) {
       html += '<script>\n'
       lineMap.push({ file: file.name, startLine: countLines(html), lineCount: countLines(file.code) })

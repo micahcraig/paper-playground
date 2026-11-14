@@ -97,6 +97,13 @@ describe('export and import', () => {
     expect(() => parseProjectExport(bad({ files: [{ name: 'evil', code: '' }] }))).toThrow('Bad file name')
   })
 
+  it('drops unknown libraries and keeps Paper.js for PaperScript', () => {
+    const data = { ...exportProject(sample()), libraries: ['d3', 'left-pad'] }
+    expect(parseProjectExport(JSON.stringify(data)).libraries).toEqual(['paper', 'd3'])
+    const js = { ...exportProject(sample()), mode: 'javascript', libraries: ['p5'] }
+    expect(parseProjectExport(JSON.stringify(js)).libraries).toEqual(['p5'])
+  })
+
   it('defaults missing libraries to paper', () => {
     const { libraries: _, ...rest } = exportProject(sample())
     expect(parseProjectExport(JSON.stringify(rest)).libraries).toEqual(['paper'])
