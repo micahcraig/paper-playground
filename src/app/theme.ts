@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks'
+import { safeStorage, type StorageLike } from './localSettings'
 
 export type Theme = 'dark' | 'light'
 export type ThemeOverride = Theme | null
@@ -58,15 +59,6 @@ export function useTheme(): Theme {
 /** localStorage key for the theme the user picked; absent means follow the system. */
 export const THEME_STORAGE_KEY = 'paper-playground:theme'
 
-type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-
-function safeStorage(): StorageLike | null {
-  try {
-    return window.localStorage
-  } catch {
-    return null
-  }
-}
 
 export function readStoredOverride(storage: StorageLike | null = safeStorage()): ThemeOverride {
   try {

@@ -22,6 +22,7 @@ import { TEMPLATES } from '../storage/templates'
 import { appendEntry, entryFromEvent, type ConsoleEntry } from './console'
 import { debounce } from './debounce'
 import { PREVIEW_TOOLBAR, THUMB_SIZE, WIDE_QUERY, thumbTransform, useMediaQuery, useViewport } from './layout'
+import { setLigatures, useLigatures } from './ligatures'
 import { THEME_NAMES, setThemeOverride, useTheme, useThemeOverride, type ThemeOverride } from './theme'
 import { useProject } from './useProject'
 import { ConsolePanel } from './components/ConsolePanel'
@@ -59,6 +60,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   const store = useMemo(() => givenStore ?? new ProjectStore(indexedDbKeyValue()), [givenStore])
   const theme = useTheme()
   const themeOverride = useThemeOverride()
+  const ligatures = useLigatures()
   const wide = useMediaQuery(WIDE_QUERY)
   const viewport = useViewport()
   const { project, ref: projectRef, update, replace, flush, saveFailed } = useProject(store)
@@ -618,6 +620,21 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
               {MODE_NAMES[mode]}
             </button>
           ))}
+        </div>
+        <h3 class="sheet-label">Editor</h3>
+        <p class="sheet-note" id="ligatures-note">
+          Draws =&gt; and != as single symbols. The keys always show the characters they type.
+        </p>
+        <div class="choice-list">
+          <button
+            type="button"
+            class="choice"
+            aria-pressed={ligatures}
+            aria-describedby="ligatures-note"
+            onClick={() => setLigatures(!ligatures)}
+          >
+            Code ligatures
+          </button>
         </div>
         <h3 class="sheet-label">Theme</h3>
         <p class="sheet-note">

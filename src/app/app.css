@@ -22,6 +22,12 @@ button:focus-visible {
 :root {
   --code-size: 13px;
   --code-line: 20px;
+  /* Code ligatures (Options > Editor); the symbol keys always keep them off. */
+  --code-ligatures: none;
+}
+
+:root[data-ligatures='on'] {
+  --code-ligatures: normal;
 }
 
 @media (min-width: 600px) {
@@ -501,7 +507,7 @@ button:focus-visible {
   padding: 0 0 8px;
   list-style: none;
   font-family: var(--font-code);
-  font-variant-ligatures: none;
+  font-variant-ligatures: var(--code-ligatures);
   font-size: 12.5px;
   line-height: 20px;
 }

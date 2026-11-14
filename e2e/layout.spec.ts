@@ -202,4 +202,32 @@ test.describe('layout', () => {
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog', { name: 'Options' })).toBeHidden()
   })
+
+  test('code ligatures can be turned on in Options and are remembered; keys stay literal', async ({ page }) => {
+    const ligatures = (selector: string) =>
+      page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontVariantLigatures)
+    await openApp(page)
+    expect(await ligatures('.cm-scroller')).toBe('none')
+
+    await button(page, 'More options').click()
+    const toggle = page.getByRole('dialog', { name: 'Options' }).getByRole('button', { name: 'Code ligatures' })
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await page.keyboard.press('Escape')
+
+    await expect.poll(() => ligatures('.cm-scroller')).toBe('normal')
+    expect(await ligatures('.console-lines')).toBe('normal')
+    // The symbol keys show the characters they type, whatever the setting.
+    expect(await ligatures('.key')).toBe('none')
+
+    await page.reload()
+    await expect(page.locator('html')).toHaveAttribute('data-ligatures', 'on')
+    expect(await ligatures('.cm-scroller')).toBe('normal')
+
+    await button(page, 'More options').click()
+    await page.getByRole('dialog', { name: 'Options' }).getByRole('button', { name: 'Code ligatures' }).click()
+    await expect(page.locator('html')).not.toHaveAttribute('data-ligatures', 'on')
+    expect(await ligatures('.cm-scroller')).toBe('none')
+  })
 })
