@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyboardInset, thumbTransform } from './layout'
+import { keyboardInset, thumbSize, thumbTransform } from './layout'
 
 describe('keyboardInset', () => {
   it('is the part of the layout viewport the keyboard hides', () => {
@@ -41,5 +41,21 @@ describe('thumbTransform', () => {
 
   it('leaves an unmeasured sketch alone', () => {
     expect(thumbTransform(152, 0, 0)).toEqual({ scale: 1, x: 0, y: 0 })
+  })
+})
+
+describe('thumbSize', () => {
+  it('is 152 px at the Pixel Fold folded width', () => {
+    expect(thumbSize(390)).toBe(152)
+  })
+
+  it('never shrinks below 152 px on narrow cover screens', () => {
+    expect(thumbSize(344)).toBe(152)
+  })
+
+  it('grows on wider narrow screens and stops at 200 px', () => {
+    expect(thumbSize(412)).toBe(161)
+    expect(thumbSize(466)).toBe(182)
+    expect(thumbSize(599)).toBe(200)
   })
 })

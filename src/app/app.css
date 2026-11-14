@@ -245,8 +245,8 @@ button:focus-visible {
 }
 
 .narrow .editor {
-  /* The end of the file can scroll clear of the 152 px floating preview. */
-  --editor-tail: 176px;
+  /* The end of the file can scroll clear of the floating preview (152 px on the Pixel Fold). */
+  --editor-tail: calc(var(--thumb-size, 152px) + 24px);
 }
 
 .editor {
@@ -303,8 +303,8 @@ button:focus-visible {
   right: 12px;
   bottom: 12px;
   z-index: 5;
-  width: 152px;
-  height: 152px;
+  width: var(--thumb-size, 152px);
+  height: var(--thumb-size, 152px);
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -814,4 +814,37 @@ button:focus-visible {
   font-family: var(--font-code);
   font-variant-ligatures: none;
   font-size: 12px;
+}
+
+/*
+ * Other foldables. The Pixel Fold sizes (390 x 844, 840 x 780) are the design
+ * targets; these only change screens outside them.
+ */
+
+/* Narrow cover screens (about 344 px, Galaxy Z Fold covers): the Live dot alone. */
+@media (max-width: 359px) {
+  .narrow .live-label {
+    display: none;
+  }
+
+  .narrow .live {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .tab {
+    padding: 0 12px;
+  }
+}
+
+/* Large inner screens (about 984 px, Galaxy Z Fold 7; tri-folds): larger type, even split. */
+@media (min-width: 960px) {
+  :root {
+    --code-size: 16px;
+    --code-line: 24px;
+  }
+
+  .wide .workspace {
+    grid-template-columns: 1fr 1fr;
+  }
 }
