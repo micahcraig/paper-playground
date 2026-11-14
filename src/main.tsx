@@ -1,4 +1,5 @@
 import { render } from 'preact'
+import './theme/fonts.css'
 import './theme/tokens.css'
 import { App } from './app/App'
 import { readStoredOverride, setThemeOverride } from './app/theme'

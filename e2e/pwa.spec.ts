@@ -1,4 +1,14 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+/** Font faces the page has finished loading, as "family weight style". */
+async function loadedFonts(page: Page): Promise<string[]> {
+  return page.evaluate(async () => {
+    await document.fonts.ready
+    return [...document.fonts]
+      .filter((face) => face.status === 'loaded')
+      .map((face) => `${face.family.replace(/["']/g, '')} ${face.weight} ${face.style}`)
+  })
+}
 
 test.describe('installable PWA', () => {
   test('serves a manifest that Android can install from', async ({ page, request }) => {
@@ -50,6 +60,27 @@ test.describe('installable PWA', () => {
     await context.setOffline(true)
     await page.reload()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('ripple')
+    // The bundled fonts come from the precache too, not a system fallback.
+    await expect.poll(() => loadedFonts(page)).toEqual(
+      expect.arrayContaining(['Inter 400 normal', 'JetBrains Mono 400 normal']),
+    )
     await context.setOffline(false)
+  })
+
+  test('renders the UI in Inter and code in JetBrains Mono', async ({ page }) => {
+    await page.goto('./')
+    await expect(page.locator('.cm-content')).toBeVisible()
+    await expect.poll(() => loadedFonts(page)).toEqual(
+      expect.arrayContaining([
+        'Inter 400 normal',
+        'Inter 600 normal',
+        'JetBrains Mono 400 normal',
+        // The starter sketch has comments, which the editor shows in italic.
+        'JetBrains Mono 400 italic',
+      ]),
+    )
+    // Code shows the characters typed: no ligatures (=> stays two glyphs).
+    const ligatures = await page.locator('.cm-scroller').evaluate((el) => getComputedStyle(el).fontVariantLigatures)
+    expect(ligatures).toBe('none')
   })
 })

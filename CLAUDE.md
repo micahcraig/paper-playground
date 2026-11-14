@@ -45,6 +45,8 @@ Node 22+ is required (`.nvmrc`); run `nvm use` first if the system Node is older
 - Libraries (M5): src/libs/registry.ts lists paper 0.17.0, p5 2.3.4, three 0.186.1 and d3 7.9.0 (a unit test checks them against package.json); src/libs/urls.ts maps each to its classic-script asset. Projects store a normalized list; PaperScript always includes paper. Only the selected libraries are fetched and inlined, and without paper the runner skips `paper.setup` and the `#canvas`.
 - three ships ES modules only, so `npm run vendor` (run by predev/prebuild) bundles it with Vite's library mode into src/vendor/generated/three.global.js (gitignored), an IIFE defining `THREE`. p5 and d3 are imported from node_modules by path because their package `exports` hide the UMD builds.
 - Logs are capped at 1000 per run inside the runner, and the console keeps the last 200 entries.
+- Fonts (M6): src/theme/fonts.css declares @font-face for the pinned @fontsource packages (5.3.0), pointing straight at the Latin woff2 files so Vite does not also emit the woff fallbacks. Only the weights in use are bundled: Inter 400/500/600 and JetBrains Mono 400 plus italic (comments). Add a face there if you use a new weight. Ligatures are off for the code font so `=>` looks like what the symbol key types.
+- README screenshots: `npm run screenshots` (playwright.screenshots.config.ts, scripts/screenshots/) rewrites docs/screenshots.
 
 ## Out of scope for v1
 
