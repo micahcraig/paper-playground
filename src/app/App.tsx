@@ -21,7 +21,16 @@ import { ProjectStore, indexedDbKeyValue, requestPersistentStorage, restoreRescu
 import { TEMPLATES } from '../storage/templates'
 import { appendEntry, entryFromEvent, type ConsoleEntry } from './console'
 import { debounce } from './debounce'
-import { PREVIEW_TOOLBAR, SHORT_QUERY, WIDE_QUERY, thumbSize, thumbTransform, useMediaQuery, useViewport } from './layout'
+import {
+  PREVIEW_TOOLBAR,
+  SHORT_QUERY,
+  WIDE_QUERY,
+  thumbSize,
+  thumbTransform,
+  useFoldLayout,
+  useMediaQuery,
+  useViewport,
+} from './layout'
 import { setLigatures, useLigatures } from './ligatures'
 import { THEME_NAMES, setThemeOverride, useTheme, useThemeOverride, type ThemeOverride } from './theme'
 import { useProject } from './useProject'
@@ -63,6 +72,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   const ligatures = useLigatures()
   const wide = useMediaQuery(WIDE_QUERY)
   const short = useMediaQuery(SHORT_QUERY)
+  const fold = useFoldLayout()
   const viewport = useViewport()
   const { project, ref: projectRef, update, replace, flush, saveFailed } = useProject(store)
 
@@ -355,7 +365,17 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   const fullHeight = Math.max(0, viewport.height - viewport.keyboardInset - PREVIEW_TOOLBAR)
   const thumbSide = thumbSize(viewport.width)
   const thumb = thumbTransform(thumbSide, fullWidth, fullHeight)
-  const previewMode = fullPreview ? 'full' : wide ? 'docked' : 'thumb'
+  // Half-open like a book, the wide layout splits at the hinge; half-folded
+  // like a laptop (tabletop), the preview docks in the top half.
+  const book = wide && fold.kind === 'book'
+  const tabletop = fold.kind === 'tabletop'
+  const previewMode = fullPreview ? 'full' : wide || tabletop ? 'docked' : 'thumb'
+  const layoutClass = `app ${wide ? 'wide' : 'narrow'}${book ? ' fold-book' : ''}${tabletop ? ' fold-tabletop' : ''}`
+  const appStyle = {
+    '--keyboard-inset': `${viewport.keyboardInset}px`,
+    '--thumb-size': `${thumbSide}px`,
+    ...(fold.kind === 'flat' ? {} : { '--fold-first': `${fold.first}px`, '--fold-gap': `${fold.gap}px` }),
+  }
   const previewStyle = {
     '--full-w': `${fullWidth}px`,
     '--full-h': `${fullHeight}px`,
@@ -365,7 +385,7 @@ export function App({ store: givenStore }: { store?: ProjectStore }) {
   }
 
   return (
-    <div class={`app ${wide ? 'wide' : 'narrow'}`} style={{ '--keyboard-inset': `${viewport.keyboardInset}px`, '--thumb-size': `${thumbSide}px` }}>
+    <div class={layoutClass} style={appStyle}>
       <header class="bar">
         <button type="button" class="icon-button" aria-label="Open projects" onClick={() => openSheet('projects')}>
           <MenuIcon />

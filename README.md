@@ -10,6 +10,20 @@ A touch-first creative-coding playground for [Paper.js](http://paperjs.org/), bu
 
 ![The light theme with a d3 bar chart project](docs/screenshots/unfolded-light-d3.png)
 
+### Other foldables
+
+The Pixel Fold is the main target, but the layout adapts to other folding phones. Half-open like a book (Chrome 138 or later), the editor and preview split exactly at the hinge:
+
+![Half-open like a book: the editor on the left half, the preview on the right half, split at the hinge](docs/screenshots/unfolded-book-dark.png)
+
+iPhone Fold:
+
+| Folded (about 466 × 678) | Unfolded (about 890 × 626) |
+| --- | --- |
+| ![The iPhone Fold folded: editor with a 182 px floating preview](docs/screenshots/iphone-fold-folded-dark.png) | ![The iPhone Fold unfolded: editor beside the preview and console](docs/screenshots/iphone-fold-unfolded-dark.png) |
+
+The iPhone Fold sizes are estimates: Apple publishes only panel resolutions, divided here by the usual 3× scale. Safari doesn't support the Viewport Segments API, so the iPhone gets the flat layouts and none of the hinge-aware ones.
+
 ## What it does
 
 - **Live preview.** Sketches run in a sandboxed iframe. With Live on, the preview reruns 250 ms after you stop typing. A run with an error keeps the last good render on screen, and the console shows the error with its file and line.
@@ -17,8 +31,10 @@ A touch-first creative-coding playground for [Paper.js](http://paperjs.org/), bu
 - **Libraries.** Each project chooses from Paper.js 0.17.0, p5.js 2.3.4, Three.js 0.186.1 and d3 7.9.0. A sketch loads only its project's libraries.
 - **Projects.** Projects can have several files. They run in tab order and share one scope. Projects are saved in the browser as you type and can be exported and imported as JSON.
 - **Made for touch.** All buttons are at least 44 px. A symbol strip gives you the keys Gboard hides. Autocorrect is off in the editor. The layout switches at 600 px, so folding and unfolding the phone changes it.
+- **Fold-aware.** Half-open like a book, the editor and preview split at the hinge. Half-folded like a laptop (tabletop), the preview fills the top half and the editor the bottom half, and it stays that way when the keyboard opens. These need Chrome 138 or later. Narrow cover screens, tall flip phones and large inner screens get small size adjustments.
 - **Works offline.** After the first visit, the app, the libraries and the fonts (Inter and JetBrains Mono) are all cached.
 - **Themes.** Tokyo Night and Tokyo Night Day follow the system setting by default. To choose one yourself, open More options and use Theme.
+- **Code ligatures.** Off by default, so `=>` shows as two characters, the same as the key that types it. To turn them on, open More options and use Code ligatures.
 
 ## Install on the Pixel Fold
 
@@ -62,6 +78,7 @@ npm run screenshots              # regenerate docs/screenshots
 - [ ] Switch the system theme between light and dark: colours match the token table in PLAN.md.
 - [ ] Airplane mode: reload the app and run a saved project.
 - [ ] Draw on the preview with touch: Paper.js mouse tools receive touch events.
+- [ ] Half-open like a book: the editor/preview split sits on the hinge. Half-folded sideways (tabletop): the preview is on top, and it stays there with the keyboard open.
 
 ## Deploy
 

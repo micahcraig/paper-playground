@@ -106,3 +106,97 @@ export function thumbTransform(box: number, width: number, height: number): Thum
   const scale = Math.max(box / width, box / height)
   return { scale, x: (box - width * scale) / 2, y: (box - height * scale) / 2 }
 }
+
+/* Fold postures (Viewport Segments API, Chrome 138+; Safari has none). */
+
+export interface SegmentRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type FoldLayout =
+  | { kind: 'flat' }
+  /**
+   * Half-open like a book (segments side by side), or half-folded like a
+   * laptop (stacked). `first` is where the first segment ends and `gap` the
+   * hinge width, in CSS px from the left or top of the viewport.
+   */
+  | { kind: 'book' | 'tabletop'; first: number; gap: number }
+
+export const FLAT: FoldLayout = { kind: 'flat' }
+
+/** Reads the viewport segments: two side by side is book posture, two stacked is tabletop. */
+export function foldLayout(segments: readonly SegmentRect[] | null | undefined): FoldLayout {
+  if (!segments || segments.length !== 2) return FLAT
+  const [a, b] = [...segments].sort((p, q) => p.y - q.y || p.x - q.x)
+  const near = (p: number, q: number) => Math.abs(p - q) < 1
+  if (near(a.y, b.y) && b.x > a.x) {
+    return { kind: 'book', first: a.x + a.width, gap: Math.max(0, b.x - (a.x + a.width)) }
+  }
+  if (near(a.x, b.x) && b.y > a.y) {
+    return { kind: 'tabletop', first: a.y + a.height, gap: Math.max(0, b.y - (a.y + a.height)) }
+  }
+  return FLAT
+}
+
+/**
+ * Opening the keyboard in tabletop shrinks the viewport, and Chrome may then
+ * report one segment. While the device still says it is folded and only the
+ * height shrank, keep the tabletop layout so the preview stays on top.
+ */
+export function holdTabletop(
+  previous: FoldLayout,
+  next: FoldLayout,
+  posture: string | null | undefined,
+  previousSize: { width: number; height: number },
+  nextSize: { width: number; height: number },
+): FoldLayout {
+  if (next.kind !== 'flat' || previous.kind !== 'tabletop' || posture !== 'folded') return next
+  return nextSize.width === previousSize.width && nextSize.height < previousSize.height ? previous : next
+}
+
+interface FoldWindow {
+  viewport?: { segments?: readonly SegmentRect[] | null }
+}
+
+interface DevicePostureLike extends EventTarget {
+  type: string
+}
+
+const SEGMENT_QUERIES = ['(horizontal-viewport-segments: 2)', '(vertical-viewport-segments: 2)']
+
+/** The current fold posture, updated as the phone folds, unfolds or rotates. */
+export function useFoldLayout(): FoldLayout {
+  const read = () => foldLayout((window as FoldWindow).viewport?.segments)
+  const [layout, setLayout] = useState<FoldLayout>(read)
+  useEffect(() => {
+    let current = read()
+    let size = { width: window.innerWidth, height: window.innerHeight }
+    const posture = (navigator as { devicePosture?: DevicePostureLike }).devicePosture
+    const update = () => {
+      const nextSize = { width: window.innerWidth, height: window.innerHeight }
+      const next = holdTabletop(current, read(), posture?.type, size, nextSize)
+      size = nextSize
+      const same =
+        next.kind === current.kind &&
+        (next.kind === 'flat' || (current.kind !== 'flat' && next.first === current.first && next.gap === current.gap))
+      current = next
+      if (!same) setLayout(next)
+    }
+    update()
+    // Folding changes the segments without resizing the viewport, so listen
+    // to the segment media queries as well as resize.
+    const queries = SEGMENT_QUERIES.map((query) => window.matchMedia(query))
+    queries.forEach((query) => query.addEventListener('change', update))
+    window.addEventListener('resize', update)
+    posture?.addEventListener('change', update)
+    return () => {
+      queries.forEach((query) => query.removeEventListener('change', update))
+      window.removeEventListener('resize', update)
+      posture?.removeEventListener('change', update)
+    }
+  }, [])
+  return layout
+}

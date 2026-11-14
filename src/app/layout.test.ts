@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyboardInset, thumbSize, thumbTransform } from './layout'
+import { FLAT, foldLayout, holdTabletop, keyboardInset, thumbSize, thumbTransform } from './layout'
 
 describe('keyboardInset', () => {
   it('is the part of the layout viewport the keyboard hides', () => {
@@ -57,5 +57,62 @@ describe('thumbSize', () => {
     expect(thumbSize(412)).toBe(161)
     expect(thumbSize(466)).toBe(182)
     expect(thumbSize(599)).toBe(200)
+  })
+})
+
+describe('foldLayout', () => {
+  it('is flat without segments or with one', () => {
+    expect(foldLayout(null)).toEqual(FLAT)
+    expect(foldLayout(undefined)).toEqual(FLAT)
+    expect(foldLayout([{ x: 0, y: 0, width: 840, height: 780 }])).toEqual(FLAT)
+  })
+
+  it('reads side-by-side segments as book posture, split at the hinge', () => {
+    const segments = [
+      { x: 0, y: 0, width: 420, height: 780 },
+      { x: 420, y: 0, width: 420, height: 780 },
+    ]
+    expect(foldLayout(segments)).toEqual({ kind: 'book', first: 420, gap: 0 })
+  })
+
+  it('reads stacked segments as tabletop, with the hinge gap, in any order', () => {
+    const segments = [
+      { x: 0, y: 466, width: 412, height: 449 },
+      { x: 0, y: 0, width: 412, height: 450 },
+    ]
+    expect(foldLayout(segments)).toEqual({ kind: 'tabletop', first: 450, gap: 16 })
+  })
+
+  it('ignores layouts it does not understand', () => {
+    expect(foldLayout([{ x: 0, y: 0, width: 10, height: 10 }, { x: 20, y: 20, width: 10, height: 10 }])).toEqual(FLAT)
+    expect(foldLayout([{ x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 1, height: 1 }, { x: 2, y: 0, width: 1, height: 1 }])).toEqual(FLAT)
+  })
+})
+
+describe('holdTabletop', () => {
+  const tabletop = { kind: 'tabletop', first: 450, gap: 16 } as const
+  const tall = { width: 412, height: 915 }
+  const keyboard = { width: 412, height: 600 }
+
+  it('keeps tabletop while the keyboard shrinks the folded viewport', () => {
+    expect(holdTabletop(tabletop, FLAT, 'folded', tall, keyboard)).toBe(tabletop)
+  })
+
+  it('goes flat once the device is flat again', () => {
+    expect(holdTabletop(tabletop, FLAT, 'continuous', tall, keyboard)).toBe(FLAT)
+  })
+
+  it('goes flat without the Device Posture API', () => {
+    expect(holdTabletop(tabletop, FLAT, undefined, tall, keyboard)).toBe(FLAT)
+  })
+
+  it('goes flat when the width changes, as on rotation', () => {
+    expect(holdTabletop(tabletop, FLAT, 'folded', tall, { width: 915, height: 412 })).toBe(FLAT)
+  })
+
+  it('passes other changes through', () => {
+    const book = { kind: 'book', first: 420, gap: 0 } as const
+    expect(holdTabletop(FLAT, book, 'folded', tall, tall)).toBe(book)
+    expect(holdTabletop(book, FLAT, 'folded', tall, keyboard)).toBe(FLAT)
   })
 })
